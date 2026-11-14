@@ -64,19 +64,19 @@ fn 상태() {
 fn 위젯_자료() {
     let w: Widgets = serde_json::from_str(fx!("widgets.json")).unwrap();
     match &w.widgets[0] {
-        Widget::Stat { id, value, unit, trend, state, open } => {
+        Widget::Stat { id, value, unit, trend, tone, open } => {
             assert_eq!(id, "blocked_today");
             assert_eq!(*value, 37.0);
             assert_eq!(unit.as_deref(), Some("건"));
             assert_eq!(*trend, Some(Trend::Up));
-            assert_eq!(*state, Some(Tone::Caution));
+            assert_eq!(*tone, Some(Tone::Caution));
             assert_eq!(open.as_ref().unwrap().view, "blocked");
         }
         other => panic!("stat 이 아님: {other:?}"),
     }
     match &w.widgets[1] {
-        Widget::List { items, state, .. } => {
-            assert_eq!(*state, Some(Tone::Danger));
+        Widget::List { items, tone, .. } => {
+            assert_eq!(*tone, Some(Tone::Danger));
             assert_eq!(items[0].open.as_ref().unwrap().reference.as_deref(), Some("4812"));
         }
         other => panic!("list 가 아님: {other:?}"),
@@ -86,7 +86,7 @@ fn 위젯_자료() {
     assert!(matches!(&q.widgets[0], Widget::Quote { reference, .. } if reference == "요한복음 3:16"));
 
     let p: Widgets = serde_json::from_str(fx!("widgets_proposed.json")).unwrap();
-    assert!(matches!(p.widgets[0], Widget::Status { state: Tone::Ok, .. }));
+    assert!(matches!(p.widgets[0], Widget::Status { tone: Tone::Ok, .. }));
     assert!(matches!(&p.widgets[1], Widget::Spark { points, .. } if points.len() == 6));
     assert!(matches!(&p.widgets[2], Widget::Timeline { items, .. } if ts_is_seconds(items[0].ts)));
 }

@@ -211,3 +211,23 @@ describe("Q2 표시 이름", () => {
     expect(root.querySelector(".frow .m")?.textContent).toBe("스토리방화벽 · 차단 해제됨");
   });
 });
+
+describe("변경 제안 2판 1장: 위젯 색조 칸은 tone", () => {
+  it("tone 만 읽는다 — health 값(down)이나 옛 칸 이름(state)은 색조 없음으로 두고 ok 로 바꾸지 않는다", () => {
+    const ws = parseWidgets(
+      {
+        widgets: [
+          { id: "a", kind: "stat", value: 1, tone: "danger" },
+          { id: "b", kind: "stat", value: 1, tone: "down" },
+          { id: "c", kind: "stat", value: 1, state: "danger" },
+        ],
+      },
+      ["a", "b", "c"],
+    );
+    expect(ws).toEqual([
+      { kind: "stat", id: "a", value: 1, tone: "danger" },
+      { kind: "stat", id: "b", value: 1 },
+      { kind: "stat", id: "c", value: 1 },
+    ]);
+  });
+});

@@ -184,10 +184,10 @@ function listItem(v: unknown): ListItem | null {
   if (!title) return null;
   const it: ListItem = { title };
   const sub = optStr(v.sub, LIMITS.sub);
-  const state = oneOf(v.state, TONES);
+  const tone = oneOf(v.tone, TONES);
   const open = openRef(v.open);
   if (sub) it.sub = sub;
-  if (state) it.state = state;
+  if (tone) it.tone = tone;
   if (open) it.open = open;
   return it;
 }
@@ -196,8 +196,8 @@ function timelineItem(v: unknown): TimelineItem | null {
   if (!isObj(v) || !tsIsSeconds(v.ts)) return null;
   const title = str(v.title, LIMITS.title);
   if (!title) return null;
-  const state = oneOf(v.state, TONES);
-  return state ? { ts: v.ts, title, state } : { ts: v.ts, title };
+  const tone = oneOf(v.tone, TONES);
+  return tone ? { ts: v.ts, title, tone } : { ts: v.ts, title };
 }
 
 function widget(v: unknown): Widget | null {
@@ -205,10 +205,10 @@ function widget(v: unknown): Widget | null {
   const id = localId(v.id);
   const kind = oneOf(v.kind, WIDGET_KINDS);
   if (!id || !kind) return null;
-  const state = oneOf(v.state, TONES) ?? undefined;
+  const tone = oneOf(v.tone, TONES) ?? undefined;
   const open = openRef(v.open);
   const unit = optStr(v.unit, 12);
-  const extra = { ...(unit ? { unit } : {}), ...(state ? { state } : {}), ...(open ? { open } : {}) };
+  const extra = { ...(unit ? { unit } : {}), ...(tone ? { tone } : {}), ...(open ? { open } : {}) };
   switch (kind) {
     case "stat": {
       const value = num(v.value);
@@ -217,15 +217,15 @@ function widget(v: unknown): Widget | null {
       return { kind, id, value, ...(trend ? { trend } : {}), ...extra };
     }
     case "status": {
-      if (!state) return null;
+      if (!tone) return null;
       const label = optStr(v.label, LIMITS.title);
-      return { kind, id, state, ...(label ? { label } : {}), ...(open ? { open } : {}) };
+      return { kind, id, tone, ...(label ? { label } : {}), ...(open ? { open } : {}) };
     }
     case "list":
       return {
         kind,
         id,
-        ...(state ? { state } : {}),
+        ...(tone ? { tone } : {}),
         items: arr(v.items)
           .slice(0, LIMITS.listItems)
           .map(listItem)

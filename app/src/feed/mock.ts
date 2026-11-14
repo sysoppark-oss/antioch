@@ -55,19 +55,19 @@ export class MockFeed implements RackFeed {
         ],
       }),
       widgets: () => [
-        { id: "blocked_today", kind: "stat", value: this.blocked, unit: "건", trend: "up", state: "caution", open: { view: "blocked" } },
+        { id: "blocked_today", kind: "stat", value: this.blocked, unit: "건", trend: "up", tone: "caution", open: { view: "blocked" } },
         { id: "rules", kind: "stat", value: 128, unit: "개" },
-        { id: "collector", kind: "status", state: "ok", label: "수집 중" },
+        { id: "collector", kind: "status", tone: "ok", label: "수집 중" },
         { id: "out_traffic", kind: "spark", points: [...this.traffic], unit: "건/분" },
         {
           id: "open_incidents",
           kind: "list",
-          state: "danger",
+          tone: "danger",
           items: [
             {
               title: "처음 보는 프로그램이 해외로 접속",
               sub: "updater.exe → 203.0.113.9:443",
-              state: "danger",
+              tone: "danger",
               open: { view: "incident", ref: "4812" },
             },
           ],
@@ -98,15 +98,15 @@ export class MockFeed implements RackFeed {
       },
       health: () => ({ state: "ok", since: Math.floor(this.now() / 1000) - 3600, notes: [], checks: [] }),
       widgets: () => [
-        { id: "latency", kind: "stat", value: this.latency[this.latency.length - 1], unit: "ms", state: "ok" },
+        { id: "latency", kind: "stat", value: this.latency[this.latency.length - 1], unit: "ms", tone: "ok" },
         { id: "hops", kind: "stat", value: 11, unit: "홉" },
         { id: "latency_trend", kind: "spark", points: [...this.latency], unit: "ms" },
         {
           id: "recent",
           kind: "timeline",
           items: [
-            { ts: Math.floor(this.now() / 1000) - 60, title: "203.0.113.9 경로 11홉", state: "ok" },
-            { ts: Math.floor(this.now() / 1000) - 900, title: "192.168.0.1 응답 1ms", state: "ok" },
+            { ts: Math.floor(this.now() / 1000) - 60, title: "203.0.113.9 경로 11홉", tone: "ok" },
+            { ts: Math.floor(this.now() / 1000) - 900, title: "192.168.0.1 응답 1ms", tone: "ok" },
           ],
         },
       ],

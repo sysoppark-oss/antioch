@@ -1,7 +1,7 @@
 {"widgets": [
   {"id": "blocked_today", "kind": "stat", "value": 37, "unit": "건", "trend": "up",
-   "state": "caution", "open": {"view": "blocked"}},
-  {"id": "open_incidents", "kind": "list", "state": "danger",
+   "tone": "caution", "open": {"view": "blocked"}},
+  {"id": "open_incidents", "kind": "list", "tone": "danger",
    "items": [{"title": "처음 보는 프로그램이 해외로 접속", "sub": "updater.exe → 203.0.113.9:443",
-              "state": "danger", "open": {"view": "incident", "ref": "4812"}}]}
+              "tone": "danger", "open": {"view": "incident", "ref": "4812"}}]}
 ]}

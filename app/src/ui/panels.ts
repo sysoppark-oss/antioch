@@ -152,7 +152,7 @@ export function modulePanel(v: SlotView, color: string, shown?: string): HTMLEle
   if (stats.length) {
     const rowEl = h("div", "kpirow");
     for (const w of stats) {
-      const k = h("div", `kpi ${w.state ?? ""}`);
+      const k = h("div", `kpi ${w.tone ?? ""}`);
       k.append(valueNode("", w.value, w.unit), h("span", "", titleOf(v, w.id)));
       rowEl.append(k);
     }
@@ -170,7 +170,7 @@ export function modulePanel(v: SlotView, color: string, shown?: string): HTMLEle
       dash.append(
         box(
           titleOf(v, w.id),
-          w.items.slice(0, 4).map((it) => row(null, it.state, it.title, it.sub)),
+          w.items.slice(0, 4).map((it) => row(null, it.tone, it.title, it.sub)),
           "없음",
         ),
       );
@@ -178,7 +178,7 @@ export function modulePanel(v: SlotView, color: string, shown?: string): HTMLEle
       dash.append(
         box(
           titleOf(v, w.id),
-          w.items.slice(0, 4).map((it) => row(hhmm(it.ts), it.state, it.title)),
+          w.items.slice(0, 4).map((it) => row(hhmm(it.ts), it.tone, it.title)),
           "없음",
         ),
       );
@@ -189,7 +189,7 @@ export function modulePanel(v: SlotView, color: string, shown?: string): HTMLEle
   for (const w of v.widgets) {
     if (w.kind !== "status") continue;
     const c = h("span", "chip");
-    c.append(h("span", `lamp ${w.state}`), document.createTextNode(`${titleOf(v, w.id)}${w.label ? ` · ${w.label}` : ""}`));
+    c.append(h("span", `lamp ${w.tone}`), document.createTextNode(`${titleOf(v, w.id)}${w.label ? ` · ${w.label}` : ""}`));
     chips.append(c);
   }
   // 조작: 이 단계는 읽기 전용이다. 누를 수 없는 표시로만 둔다(확정은 언제나 주인 모듈의 확인 창, 6.8)

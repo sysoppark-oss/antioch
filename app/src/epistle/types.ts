@@ -80,21 +80,21 @@ export interface OpenRef {
 export interface ListItem {
   title: string;
   sub?: string;
-  state?: Tone;
+  tone?: Tone;
   open?: OpenRef;
 }
 
 export interface TimelineItem {
   ts: number;
   title: string;
-  state?: Tone;
+  tone?: Tone;
 }
 
 export type Widget =
-  | { kind: "stat"; id: string; value: number; unit?: string; trend?: Trend; state?: Tone; open?: OpenRef }
-  | { kind: "status"; id: string; state: Tone; label?: string; open?: OpenRef }
-  | { kind: "list"; id: string; state?: Tone; items: ListItem[] }
-  | { kind: "spark"; id: string; points: number[]; unit?: string; state?: Tone; open?: OpenRef }
+  | { kind: "stat"; id: string; value: number; unit?: string; trend?: Trend; tone?: Tone; open?: OpenRef }
+  | { kind: "status"; id: string; tone: Tone; label?: string; open?: OpenRef }
+  | { kind: "list"; id: string; tone?: Tone; items: ListItem[] }
+  | { kind: "spark"; id: string; points: number[]; unit?: string; tone?: Tone; open?: OpenRef }
   | { kind: "timeline"; id: string; items: TimelineItem[] }
   | { kind: "quote"; id: string; text: string; ref: string; version: string; open?: OpenRef };
 

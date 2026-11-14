@@ -65,7 +65,7 @@ pub enum Risk {
     Forbidden,
 }
 
-/// 위젯·항목의 색조. 6.5 예시의 "caution"·"danger" 에 "ok"·"off" 를 더했다 [제안 — 설계 문서에 목록이 없음]
+/// 위젯·항목의 색조(칸 이름 `tone`). `rack.health` 의 `state` 와 값 집합이 달라 이름을 나눴다 [확정 2026-11-15 — 변경 제안 2판 1장]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Tone {
@@ -198,14 +198,14 @@ pub enum Widget {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         trend: Option<Trend>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        state: Option<Tone>,
+        tone: Option<Tone>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         open: Option<OpenRef>,
     },
     /// [제안] 자료 모양
     Status {
         id: String,
-        state: Tone,
+        tone: Tone,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         label: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -214,7 +214,7 @@ pub enum Widget {
     List {
         id: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        state: Option<Tone>,
+        tone: Option<Tone>,
         #[serde(default)]
         items: Vec<ListItem>,
     },
@@ -225,7 +225,7 @@ pub enum Widget {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         unit: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        state: Option<Tone>,
+        tone: Option<Tone>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         open: Option<OpenRef>,
     },
@@ -252,7 +252,7 @@ pub struct ListItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sub: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub state: Option<Tone>,
+    pub tone: Option<Tone>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub open: Option<OpenRef>,
 }
@@ -263,7 +263,7 @@ pub struct TimelineItem {
     pub ts: i64,
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub state: Option<Tone>,
+    pub tone: Option<Tone>,
 }
 
 /// 모듈끼리 주고받는 대상의 공용어 (6.6)

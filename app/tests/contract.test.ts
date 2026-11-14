@@ -85,10 +85,10 @@ describe("rack.health / rack.widgets", () => {
       value: 37,
       trend: "up",
       unit: "건",
-      state: "caution",
+      tone: "caution",
       open: { view: "blocked" },
     });
-    expect(ws[1]).toMatchObject({ kind: "list", state: "danger" });
+    expect(ws[1]).toMatchObject({ kind: "list", tone: "danger" });
     expect((ws[1] as any).items[0].open).toEqual({ view: "incident", ref: "4812" });
     expect(parseWidgets(fx("widgets_word.json"), ["today"])[0]).toMatchObject({ kind: "quote", ref: "요한복음 3:16" });
     expect(parseWidgets(fx("widgets_proposed.json"), ["service", "uplink", "recent"]).map((w) => w.kind)).toEqual([

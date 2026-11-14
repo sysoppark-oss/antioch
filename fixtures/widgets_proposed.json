@@ -1,6 +1,6 @@
 {"widgets": [
-  {"id": "service", "kind": "status", "state": "ok", "label": "수집 중"},
-  {"id": "uplink", "kind": "spark", "points": [3, 5, 4, 9, 12, 7], "unit": "Mbps", "state": "ok"},
+  {"id": "service", "kind": "status", "tone": "ok", "label": "수집 중"},
+  {"id": "uplink", "kind": "spark", "points": [3, 5, 4, 9, 12, 7], "unit": "Mbps", "tone": "ok"},
   {"id": "recent", "kind": "timeline", "items": [
-    {"ts": 1794355321, "title": "203.0.113.9 경로 11홉", "state": "ok"}]}
+    {"ts": 1794355321, "title": "203.0.113.9 경로 11홉", "tone": "ok"}]}
 ]}
