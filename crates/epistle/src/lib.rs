@@ -1,10 +1,18 @@
 //! epistle: Epistle 1.0 의 rack.* 자료 계약.
 //! 기준: 통합프로젝트 「안디옥 플랫폼 설계와 에피스틀 규격 (0.19판 초안)」 6.1·6.3(확정), 6.4~6.6·7장(초안).
 //!
-//! 이 단계(1단계)에는 타입과 검사만 있다. 전송(네임드 파이프)·등록부·구성원 확인은 2단계에서 더한다.
+//! 타입과 검사(이 파일), 봉투(`rpc`), 클라이언트(`client`), 슬롯 발견(`discover`), 이름·경로 규칙(`names`)은
+//! 운영체제를 부르지 않아 Linux 에서 시험한다. 등록부·네임드 파이프·서버 확인은 `win`(Windows 전용)에 있다.
 //! 화면 쪽 짝은 `app/src/epistle/` 이고, 두 쪽이 `fixtures/` 의 같은 예시 파일로 시험한다.
 //!
 //! 모듈에서 온 값은 모두 **자료**다. 여기 검사를 통과해도 글자로만 표시한다.
+
+pub mod client;
+pub mod discover;
+pub mod names;
+pub mod rpc;
+#[cfg(windows)]
+pub mod win;
 
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;

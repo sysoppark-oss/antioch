@@ -1,0 +1,78 @@
+name: ci
+
+# Linux: epistle 크레이트와 화면(app) 시험.
+# Windows: epistle 의 실제 네임드 파이프·등록부 시험(tests/win_pipe.rs). 러너는 일회용 VM 이라 HKLM 시험 키를 써도 안전하다.
+# 결과 로그는 ci-logs 고아 브랜치의 epistle/run-<번호>/<os>/ 에 남긴다: git fetch origin ci-logs 후 git show origin/ci-logs:<경로>
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: epistle
+        run: cargo test --locked
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: app
+        working-directory: app
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm test
+          npx vite build
+
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: epistle (실제 파이프·등록부)
+        shell: pwsh
+        run: |
+          cargo test --locked -p epistle -- --nocapture --test-threads=4 2>&1 | Tee-Object -FilePath test.log
+          "exit=$LASTEXITCODE" | Add-Content test.log
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Publish logs to ci-logs branch
+        if: always()
+        shell: pwsh
+        run: |
+          $dst = Join-Path $env:RUNNER_TEMP "ci-logs"
+          git clone --quiet --branch ci-logs --single-branch "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" $dst 2>$null
+          $run = Join-Path $dst "epistle/run-${{ github.run_number }}/${{ matrix.os }}"
+          New-Item -ItemType Directory -Path $run -Force | Out-Null
+          Copy-Item test.log $run -ErrorAction SilentlyContinue
+          "${{ github.sha }}" | Set-Content (Join-Path $run "commit.txt")
+          "${{ job.status }}" | Set-Content (Join-Path $run "status.txt")
+          git -C $dst config user.name "github-actions"
+          git -C $dst config user.email "actions@github.com"
+          Get-ChildItem (Join-Path $dst "epistle") -Directory -ErrorAction SilentlyContinue | Sort-Object { [int]($_.Name -replace 'run-','') } -Descending | Select-Object -Skip 10 | Remove-Item -Recurse -Force
+          git -C $dst add -A
+          git -C $dst commit --quiet -m "epistle run ${{ github.run_number }} ${{ matrix.os }} (${{ job.status }})" 2>$null
+          $pushed = $false
+          for ($i = 0; $i -lt 10; $i++) {
+            git -C $dst fetch --quiet origin ci-logs 2>$null
+            git -C $dst rebase --quiet origin/ci-logs 2>$null
+            if ($LASTEXITCODE -ne 0) { git -C $dst rebase --abort 2>$null; Start-Sleep -Seconds 2; continue }
+            git -C $dst push --quiet origin ci-logs 2>$null
+            if ($LASTEXITCODE -eq 0) { $pushed = $true; break }
+            Start-Sleep -Seconds (2 * ($i + 1) + (Get-Random -Maximum 5))
+          }
+          if (-not $pushed) { "ci-logs push failed after retries"; exit 1 }
