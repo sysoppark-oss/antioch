@@ -56,8 +56,8 @@ fn create_pipe(name: &str, first: bool) -> Result<usize, u32> {
             open_mode,
             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
             PIPE_UNLIMITED_INSTANCES,
-            1 << 20,
-            1 << 20,
+            1 << 21,
+            1 << 21,
             0,
             &sa,
         )
@@ -88,7 +88,7 @@ fn serve(id: &str, answer_as: &'static str) -> Server {
     std::thread::spawn(move || {
         let h = h as HANDLE;
         unsafe { ConnectNamedPipe(h, std::ptr::null_mut()) }; // 이미 붙었으면 0(ERROR_PIPE_CONNECTED) — 그대로 진행
-        let mut buf = vec![0u8; 1 << 20];
+        let mut buf = vec![0u8; 1 << 21];
         let write = |v: Value| {
             let line = format!("{v}\n");
             let mut n = 0u32;
@@ -110,6 +110,8 @@ fn serve(id: &str, answer_as: &'static str) -> Server {
                     write(json!({"jsonrpc":"2.0","method":"rack.event","params":{"id":format!("{answer_as}:evt:1"),"ts":1794355321,"module":answer_as,"severity":"info","kind":"test","title":"시험 사건"}}));
                 }
                 "big" => write(json!({"jsonrpc":"2.0","id":id,"result":{"blob":"가".repeat(200_000)}})),
+                // 상한(1MB)을 넘는 메시지
+                "huge" => write(json!({"jsonrpc":"2.0","id":id,"result":{"blob":"a".repeat(1_100_000)}})),
                 "silent" => {}
                 _ => write(json!({"jsonrpc":"2.0","id":id,"error":{"code":-32601,"message":"method not found"}})),
             }
@@ -153,7 +155,7 @@ fn 등록된_실행_파일이_연_파이프에_붙어_주고받는다() {
     let hello = client.hello("zzci_a", "0.1.0", T).expect("hello");
     assert_eq!(hello.module_version, "9.9.9");
     assert_eq!(client.call("rack.health", json!({}), T).unwrap()["state"], "ok");
-    // 버퍼(64KB)보다 큰 메시지: 이어 읽어 한 메시지로 받는다
+    // 큰 메시지(약 600KB)도 한 메시지로 받는다
     let big = client.call("big", json!({}), T).unwrap();
     assert_eq!(big["blob"].as_str().unwrap().chars().count(), 200_000);
     // 읽기 스레드가 기다리는 동안에도 쓰기가 막히지 않는다(overlapped) — 답이 없는 요청 뒤에 다음 요청
@@ -166,6 +168,22 @@ fn 등록된_실행_파일이_연_파이프에_붙어_주고받는다() {
 
     drop(client); // 우리가 놓으면 서버가 끊김을 본다
     s.done.recv_timeout(T).expect("서버 스레드 종료");
+}
+
+#[test]
+fn 상한을_넘는_메시지를_보내는_서버는_끊는다() {
+    let s = serve("zzci_g", "zzci_g");
+    let (tx, closed) = mpsc::channel();
+    let (client, _) = win::connect(
+        &slot("zzci_g", ModuleKind::App, me(), &s.name),
+        Box::new(|_, _| {}),
+        Box::new(move |r| {
+            let _ = tx.send(r);
+        }),
+    )
+    .expect("접속");
+    assert_eq!(client.call("huge", json!({}), T), Err(CallError::Closed));
+    assert!(matches!(closed.recv_timeout(T).unwrap(), epistle::client::CloseReason::Read(_)));
 }
 
 #[test]

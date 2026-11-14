@@ -279,32 +279,25 @@ pub struct PipeLine {
 }
 impl PipeLine {
     pub fn new(h: Arc<Handle>) -> std::io::Result<Self> {
-        Ok(Self { h, ev: Event::new()?, buf: vec![0u8; 64 * 1024] })
+        // 상한보다 조금 큰 버퍼 하나로 메시지를 통째로 받는다(스토리방화벽 화면과 같은 방식)
+        Ok(Self { h, ev: Event::new()?, buf: vec![0u8; MAX_LINE + 4096] })
     }
 }
 impl LineSource for PipeLine {
     fn read_line(&mut self) -> std::io::Result<Option<Vec<u8>>> {
-        // 메시지 모드: 메시지 하나를 다 받을 때까지(ERROR_MORE_DATA 면 이어 읽기). 상한을 넘으면 끝낸다
-        let mut out = Vec::new();
-        loop {
-            let mut ov: OVERLAPPED = unsafe { std::mem::zeroed() };
-            ov.hEvent = self.ev.0;
-            let mut n = 0u32;
-            let ok = unsafe { ReadFile(self.h.0, self.buf.as_mut_ptr(), self.buf.len() as u32, &mut n, &mut ov) } != 0;
-            match wait(self.h.0, &mut ov, ok, &mut n) {
-                Ok(more) => {
-                    out.extend_from_slice(&self.buf[..n as usize]);
-                    if out.len() > MAX_LINE {
-                        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "메시지가 상한을 넘음"));
-                    }
-                    if !more {
-                        return Ok(if out.is_empty() { None } else { Some(out) });
-                    }
-                }
-                // 끊김·취소 = 끝
-                Err(e) if matches!(e.raw_os_error(), Some(ERROR_BROKEN_PIPE) | Some(ERROR_OPERATION_ABORTED)) => return Ok(None),
-                Err(e) => return Err(e),
-            }
+        // 메시지 모드: 한 번 읽기 = 메시지 하나. 버퍼에 다 들어오지 않으면(ERROR_MORE_DATA) 상한을 넘은 것이므로 끝낸다.
+        // (러너 실측 run-1: 작은 버퍼로 이어 읽으면, 곧바로 ERROR_MORE_DATA 로 돌아온 첫 조각의 길이를 얻지 못해 조각을 잃었다)
+        let mut ov: OVERLAPPED = unsafe { std::mem::zeroed() };
+        ov.hEvent = self.ev.0;
+        let mut n = 0u32;
+        let ok = unsafe { ReadFile(self.h.0, self.buf.as_mut_ptr(), self.buf.len() as u32, &mut n, &mut ov) } != 0;
+        match wait(self.h.0, &mut ov, ok, &mut n) {
+            Ok(true) => Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "메시지가 상한을 넘음")),
+            Ok(false) if n as usize > MAX_LINE => Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "메시지가 상한을 넘음")),
+            Ok(false) => Ok(if n == 0 { None } else { Some(self.buf[..n as usize].to_vec()) }),
+            // 끊김·취소 = 끝
+            Err(e) if matches!(e.raw_os_error(), Some(ERROR_BROKEN_PIPE) | Some(ERROR_OPERATION_ABORTED)) => Ok(None),
+            Err(e) => Err(e),
         }
     }
 }
