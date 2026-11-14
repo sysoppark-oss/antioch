@@ -9,7 +9,8 @@
 ## 구조
 
 ```
-crates/epistle/   Epistle 1.0 rack.* 타입과 검사 (Rust, 운영체제 호출 없음)
+crates/epistle/   Epistle 1.0 — rack.* 타입과 검사, 봉투(rpc), 클라이언트(client), 슬롯 발견(discover), 이름·경로 규칙(names)
+                  + Windows 전용 win: 등록부 읽기, 네임드 파이프 접속, 파이프 서버 확인
 fixtures/         계약 고정 예시 — Rust·화면 시험이 같은 파일을 읽는다
 app/              섀시 화면 (Vite + TypeScript, 3단계에서 Tauri 2 껍데기를 씌운다)
   src/epistle/    화면 쪽 타입과 걸러 내기(validate.ts)
@@ -24,7 +25,7 @@ docs/             검증 의뢰서 사본 (기준은 드라이브)
 ## 돌려 보기
 
 ```
-cargo test                      # 계약 시험 (Linux 에서 전부 돈다)
+cargo test                      # epistle 시험 (Windows 전용 부분을 뺀 전부가 Linux 에서 돈다)
 cd app && npm install
 npm test                        # 화면 쪽 계약·섀시·화면 시험
 npm run dev                     # http://localhost:1420 — 목업 피드에 붙은 콘솔
@@ -32,10 +33,22 @@ npm run dev                     # http://localhost:1420 — 목업 피드에 붙
 
 ## 단계
 
-1. **(지금)** rack.* 자료 계약 고정 + 목업 피드에 붙은 홀로그램 콘솔
-2. epistle 크레이트에 전송(네임드 파이프 + 한 줄 JSON-RPC 2.0)·등록부 발견·구성원/서버 확인
-3. 목업 피드를 epistle 실클라이언트로 교체 (Tauri 2)
+1. (끝) rack.* 자료 계약 고정 + 목업 피드에 붙은 홀로그램 콘솔
+2. (끝) epistle 크레이트에 전송(네임드 파이프 + 한 줄 JSON-RPC 2.0)·등록부 발견·서버 확인
+3. **(다음)** 목업 피드를 epistle 실클라이언트로 교체 (Tauri 2)
 4. 스토리방화벽에 읽기 전용 rack.* 송출 → 섀시에 실데이터
+
+## CI
+
+`.github/workflows/ci.yml`: Linux 에서 epistle·화면 시험, Windows 러너(2022·2025)에서 실제 네임드 파이프·등록부 시험(`crates/epistle/tests/win_pipe.rs`).
+Windows 결과 로그는 `ci-logs` 고아 브랜치의 `epistle/run-<번호>/<os>/test.log` 에 남는다:
+
+```
+git fetch origin ci-logs
+git show origin/ci-logs:epistle/run-2/windows-2025/test.log
+```
+
+문서만 바뀐 커밋은 CI 가 돌지 않는다.
 
 ## 라이선스
 
