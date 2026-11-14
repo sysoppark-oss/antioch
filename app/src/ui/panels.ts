@@ -1,7 +1,7 @@
 // 패널 그리기. 모듈에서 온 글자는 모두 textContent 로만 넣는다 — innerHTML 을 쓰지 않는다(화면 주입 방지, 6.5).
 
-import type { SlotView } from "../core/chassis";
-import type { RackEvent, Severity, State, Tone, Widget } from "../epistle/types";
+import type { FeedEvent, SlotView } from "../core/chassis";
+import type { Severity, State, Tone, Widget } from "../epistle/types";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -68,10 +68,26 @@ function caption(title: string, lamp: { tone: Tone; label: string }): HTMLElemen
   return cap;
 }
 
-function row(time: string | null, tone: string | undefined, main: string, sub?: string): HTMLElement {
+/** 표시 이름. 이름이 같은 모듈이 둘이면 뒤에 등록된 쪽에 슬롯 id 를 붙여 구별한다(남의 이름 흉내 방지) */
+export function displayTitles(slots: SlotView[]): Map<string, string> {
+  const out = new Map<string, string>();
+  const used = new Set<string>();
+  for (const v of slots) {
+    const t = v.manifest?.title ?? v.id;
+    const key = t.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+    out.set(v.id, used.has(key) ? `${t} (${v.id})` : t);
+    used.add(key);
+  }
+  return out;
+}
+
+function row(time: string | null, tone: string | undefined, main: string, sub?: string, source?: string): HTMLElement {
   const r = h("div", "frow");
   if (time) r.append(h("span", "t", time));
-  r.append(h("span", `lamp ${tone ?? "info"}`), h("span", "m", main));
+  r.append(h("span", `lamp ${tone ?? "info"}`));
+  // 출처는 섀시가 붙이는 칸이다 — 모듈이 쓴 제목과 섞이지 않게 따로 둔다
+  if (source) r.append(h("span", "src", source));
+  r.append(h("span", "m", main));
   if (sub) r.append(h("span", "s", sub));
   return r;
 }
@@ -109,8 +125,8 @@ function titleOf(v: SlotView, widgetId: string): string {
 }
 
 /** 모듈 한 대의 운영 대시보드: 헤더·상태·지표·그래프·목록·조작 */
-export function modulePanel(v: SlotView, color: string): HTMLElement[] {
-  const title = v.manifest?.title ?? v.id;
+export function modulePanel(v: SlotView, color: string, shown?: string): HTMLElement[] {
+  const title = shown ?? v.manifest?.title ?? v.id;
   const out: HTMLElement[] = [caption(title, slotLamp(v))];
   const dash = h("div", "dash");
   out.push(dash);
@@ -122,7 +138,7 @@ export function modulePanel(v: SlotView, color: string): HTMLElement[] {
         : v.status === "rejected"
           ? `랙 구성원 확인에 실패해 자료를 받지 않습니다\n${v.reason ?? ""}`
           : v.status === "lost"
-            ? "연결이 끊겼습니다\n다시 붙으면 처음부터 새로 받습니다"
+            ? `연결이 끊겼습니다\n${v.reason ?? "다시 붙으면 처음부터 새로 받습니다"}`
             : "연결하는 중입니다";
     const blank = h("div", "blank", msg);
     blank.style.whiteSpace = "pre-line";
@@ -177,6 +193,7 @@ export function modulePanel(v: SlotView, color: string): HTMLElement[] {
     chips.append(c);
   }
   // 조작: 이 단계는 읽기 전용이다. 누를 수 없는 표시로만 둔다(확정은 언제나 주인 모듈의 확인 창, 6.8)
+  if (v.manifest?.actions.length) chips.append(h("span", "chip ro", "읽기 전용 · 여기서는 누를 수 없음"));
   for (const a of v.manifest?.actions ?? []) {
     chips.append(h("span", `chip ${a.risk === "danger" || a.risk === "forbidden" ? "danger" : a.risk === "caution" ? "caution" : ""}`, a.title));
   }
@@ -195,7 +212,7 @@ export function modulePanel(v: SlotView, color: string): HTMLElement[] {
 }
 
 /** 시스템 개요: 모듈 상태등 + 통합 이벤트 피드 */
-export function overviewPanel(slots: SlotView[], events: RackEvent[]): HTMLElement[] {
+export function overviewPanel(slots: SlotView[], events: FeedEvent[]): HTMLElement[] {
   const mods = slots.filter((v) => !v.builtin);
   const on = mods.filter((v) => v.status === "on");
   const worst: Tone = mods.some((v) => slotLamp(v).tone === "danger")
@@ -210,6 +227,7 @@ export function overviewPanel(slots: SlotView[], events: RackEvent[]): HTMLEleme
   const dash = h("div", "dash");
   out.push(dash);
 
+  const titles = displayTitles(slots);
   if (mods.length) {
     const tiles = h("div", "tiles");
     mods.slice(0, 4).forEach((v, i) => {
@@ -220,18 +238,19 @@ export function overviewPanel(slots: SlotView[], events: RackEvent[]): HTMLEleme
       const mv = stat ? valueNode("mv", stat.value, stat.unit) : h("b", "mv", lamp.label);
       mv.className = "mv";
       const nm = h("div", "nm");
-      nm.append(h("span", `lamp ${lamp.tone}`), document.createTextNode(stat ? titleOf(v, stat.id) : (v.manifest?.title ?? v.id)));
+      nm.append(h("span", `lamp ${lamp.tone}`), document.createTextNode(stat ? titleOf(v, stat.id) : (titles.get(v.id) ?? v.id)));
       t.append(h("div", "ic", (v.manifest?.title ?? v.id).slice(0, 2).toUpperCase()), mv, nm);
       tiles.append(t);
     });
     dash.append(tiles);
   }
 
-  const titles = new Map(slots.map((v) => [v.id, v.manifest?.title ?? v.id]));
   dash.append(
     box(
       "실시간 이벤트",
-      events.slice(0, 6).map((e) => row(hhmm(e.ts), SEV_TONE[e.severity], `${titles.get(e.module) ?? e.module} · ${e.title}`)),
+      events
+        .slice(0, 6)
+        .map((e) => row(`${hhmm(e.ts)}${e.tsFixed ? " 보정" : ""}`, SEV_TONE[e.severity], e.title, undefined, titles.get(e.module) ?? e.module)),
       "아직 사건이 없습니다",
     ),
   );

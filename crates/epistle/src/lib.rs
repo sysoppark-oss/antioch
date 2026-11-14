@@ -18,6 +18,13 @@ pub const MAX_SUB: usize = 200;
 /// 6.1: 목록 한 쪽 최대 1,000건 — 위젯 목록은 화면용이라 더 좁게 둔다 [제안]
 pub const MAX_LIST_ITEMS: usize = 50;
 pub const MAX_SPARK_POINTS: usize = 240;
+/// 조작 이름은 짧게 — 긴 유도 문구를 실을 자리를 주지 않는다
+pub const MAX_ACTION_TITLE: usize = 24;
+/// 수치의 절댓값 상한. 넘는 값은 그 칸을 버린다
+pub const MAX_ABS_NUMBER: f64 = 1e15;
+/// 사건 시각의 허용 창: 지금보다 60초 넘게 앞서거나 30일 넘게 지났으면 받은 시각으로 고쳐 적는다
+pub const TS_FUTURE_SEC: i64 = 60;
+pub const TS_PAST_SEC: i64 = 30 * 86_400;
 /// 6.1: 알림은 모듈당 초당 10건 이하
 pub const MAX_EVENTS_PER_SEC: u32 = 10;
 /// 시각은 epoch **초**다. 밀리초(지금 기준 약 1.8e12)가 들어오면 이 상한에 걸린다 (2100-01-01)
@@ -346,6 +353,16 @@ pub fn valid_module_id(id: &str) -> bool {
 /// 시각이 epoch 초인가
 pub fn ts_is_seconds(ts: i64) -> bool {
     ts > 0 && ts < MAX_TS
+}
+
+/// 사건 시각이 허용 창 안인가. 밖이면 받는 쪽이 받은 시각으로 고쳐 적는다(버리지 않는다)
+pub fn ts_in_window(ts: i64, now: i64) -> bool {
+    ts <= now + TS_FUTURE_SEC && ts >= now - TS_PAST_SEC
+}
+
+/// 그림·표기에 써도 되는 수인가
+pub fn number_ok(v: f64) -> bool {
+    v.is_finite() && v.abs() <= MAX_ABS_NUMBER
 }
 
 /// 판 협상(접속자 쪽): 메이저가 같고 모듈의 마이너가 내 것 이상이어야 한다 (6.3)

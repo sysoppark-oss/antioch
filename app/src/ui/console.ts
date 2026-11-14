@@ -2,7 +2,7 @@
 // 승인 맛보기의 동작을 그대로 옮기고, 패널 수가 바뀌어도 돌게 했다.
 
 import type { Chassis } from "../core/chassis";
-import { emptyPanel, h, modulePanel, overviewPanel, slotColor, wordPanel } from "./panels";
+import { displayTitles, emptyPanel, h, modulePanel, overviewPanel, slotColor, wordPanel } from "./panels";
 
 interface Card {
   key: string;
@@ -51,13 +51,14 @@ export class HoloConsole {
     const slots = this.chassis.slots;
     const mods = slots.filter((v) => !v.builtin);
     const word = slots.find((v) => v.id === "word");
+    const titles = displayTitles(slots);
     const plan: { key: string; color: string; dim: boolean; fill: () => HTMLElement[] }[] = [
       { key: "@overview", color: "var(--sy)", dim: false, fill: () => overviewPanel(slots, this.chassis.events) },
       ...mods.map((v, i) => ({
         key: v.id,
         color: v.status === "on" ? slotColor(v.id, i) : "var(--none)",
         dim: v.status !== "on",
-        fill: () => modulePanel(v, slotColor(v.id, i)),
+        fill: () => modulePanel(v, slotColor(v.id, i), titles.get(v.id)),
       })),
       ...(word ? [{ key: "@word", color: "var(--wd)", dim: false, fill: () => wordPanel(word) }] : []),
       { key: "@empty", color: "var(--none)", dim: true, fill: emptyPanel },

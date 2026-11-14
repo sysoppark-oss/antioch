@@ -109,6 +109,13 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:59;
 .frow .m{color:var(--ink);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .frow .s{color:var(--dim);font-size:9.5px;flex:0 1 46%;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:ui-monospace,Consolas,monospace}
 .frow.none{color:var(--faint)}
+.frow .src{flex:none;max-width:38%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9.5px;font-weight:700;
+ color:var(--holo2);border:1px solid rgba(79,227,255,.3);border-radius:5px;padding:1px 6px;background:rgba(79,227,255,.07)}
+/* 모듈이 준 글자는 제 칸 안에서만: 방향이 다른 글자가 옆 칸의 순서를 뒤집지 못하게 하고, 넘치면 자른다 */
+.dash{contain:content}
+.cap b,.sum,.kpi b,.kpi span,.tile .mv,.tile .nm,.box .ttl,.frow .m,.frow .s,.frow .src,.chip,.foot{unicode-bidi:isolate;overflow:hidden}
+.kpi b,.kpi span{text-overflow:ellipsis}
+.chip.ro{color:var(--faint);border-style:dashed}
 .viz{display:block;width:100%;height:auto;filter:drop-shadow(0 0 6px rgba(79,227,255,.45))}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
 .chip{display:inline-flex;align-items:center;font-size:10px;font-weight:700;border-radius:7px;padding:4px 9px;

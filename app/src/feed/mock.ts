@@ -13,6 +13,8 @@ interface MockModule {
 
 export class MockFeed implements RackFeed {
   readonly modules = new Map<string, MockModule>();
+  /** 시험용: 슬롯별 파이프 이름 표식 */
+  readonly tokens = new Map<string, string>();
   private seq = 90210;
   private blocked = 37;
   private latency = [88, 91, 95, 90, 92, 97, 93, 92];
@@ -112,7 +114,7 @@ export class MockFeed implements RackFeed {
   }
 
   async discover(): Promise<SlotInfo[]> {
-    return [...this.modules].map(([id, m]) => ({ id, running: m.running }));
+    return [...this.modules].map(([id, m]) => ({ id, running: m.running, token: this.tokens.get(id) }));
   }
 
   async connect(id: string): Promise<ModuleLink> {

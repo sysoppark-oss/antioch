@@ -54,7 +54,7 @@ describe("화면 주입 방지", () => {
 
   it("개요 패널의 사건 제목도 같다", () => {
     const e = parseEvent({ id: "netx:evt:1", ts: 1794355321, module: "netx", severity: "critical", kind: "x", title: EVIL }, "netx")!;
-    const root = mount(overviewPanel([view], [e]));
+    const root = mount(overviewPanel([view], [{ ...e, recv: 1, rawTs: e.ts }]));
     expect(root.querySelectorAll("img,script")).toHaveLength(0);
     expect(root.querySelector(".frow .m")?.textContent).toContain("<img");
   });

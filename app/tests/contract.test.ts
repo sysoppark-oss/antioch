@@ -155,7 +155,7 @@ describe("기본 검사", () => {
   });
   it("자르기는 글자 단위이고 제어·방향 전환 문자를 뺀다", () => {
     expect(clip("가나다라", 2)).toBe("가나");
-    expect(clip("a‮b\u0000c", 10)).toBe("abc");
+    expect(clip("a\u202eb\u0000c", 10)).toBe("abc");
     expect(clip("😀😀😀", 2)).toBe("😀😀");
   });
 });

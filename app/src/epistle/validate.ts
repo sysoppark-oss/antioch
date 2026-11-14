@@ -30,25 +30,38 @@ type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
 const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 
-/** 글자 수(코드 포인트) 기준으로 자른다. 제어 문자는 뺀다. */
+// 빼는 글자: C0·C1 제어 문자(탭·줄바꿈 제외), 폭 없는 문자(U+200B~200F, U+FEFF), 줄·문단 구분(U+2028·2029),
+// 글자 방향을 바꾸는 문자(U+061C, U+202A~202E, U+2066~2069). 소스에는 이스케이프로만 적는다
+// eslint-disable-next-line no-control-regex
+const STRIP = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff]/g;
+/** 한 글자에 겹쳐 쌓는 결합 부호는 둘까지만 둔다(옆 칸을 덮는 글자 방지) */
+const STACKED = /(\p{M}{2})\p{M}+/gu;
+/** 그림 글자. 이름표에서는 뺀다 — 상태등 흉내(초록 동그라미 등)를 못 하게 */
+const PICTO = /[\p{Extended_Pictographic}\ufe0f\u20e3]/gu;
+
+/** 글자 수(코드 포인트) 기준으로 자른다. 제어·폭 없는·방향 전환 문자를 빼고 겹친 결합 부호를 줄인다. 줄바꿈은 둔다. */
 export function clip(s: string, max: number): string {
-  // eslint-disable-next-line no-control-regex
-  const clean = s.replace(/[\u0000-\u0008\u000b-\u001f\u007f‪-‮⁦-⁩]/g, "");
+  const clean = s.replace(STRIP, "").replace(STACKED, "$1");
   const cps = Array.from(clean);
   return cps.length > max ? cps.slice(0, max).join("") : clean;
 }
 
+/** 이름표(제목·보조·단위)용: 한 줄로 만들고 그림 글자를 뺀 뒤 자른다 */
+export function label(s: string, max: number): string {
+  return clip(s.replace(/[\t\n]+/g, " ").replace(PICTO, ""), max).trim();
+}
+
 function str(v: unknown, max: number): string | null {
-  return typeof v === "string" ? clip(v, max) : null;
+  return typeof v === "string" ? label(v, max) : null;
 }
 function optStr(v: unknown, max: number): string | undefined {
-  return typeof v === "string" ? clip(v, max) : undefined;
+  return typeof v === "string" ? label(v, max) : undefined;
 }
 function oneOf<T extends string>(v: unknown, set: readonly T[]): T | null {
   return typeof v === "string" && (set as readonly string[]).includes(v) ? (v as T) : null;
 }
 function num(v: unknown): number | null {
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
+  return typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= LIMITS.maxAbsNumber ? v : null;
 }
 
 const STATES: readonly State[] = ["ok", "degraded", "down", "starting"];
@@ -127,7 +140,7 @@ export function parseManifest(v: unknown, slotId: string): Manifest | null {
   for (const x of arr(v.actions).slice(0, LIMITS.actions)) {
     if (!isObj(x)) continue;
     const id = localId(x.id);
-    const t = str(x.title, LIMITS.title);
+    const t = str(x.title, LIMITS.actionTitle);
     const risk = oneOf(x.risk, RISKS);
     if (id && t && risk) actions.push({ id, title: t, risk });
   }
@@ -235,7 +248,7 @@ function widget(v: unknown): Widget | null {
           .filter((i): i is TimelineItem => i !== null),
       };
     case "quote": {
-      const text = str(v.text, LIMITS.quote);
+      const text = typeof v.text === "string" ? clip(v.text, LIMITS.quote) : null; // 본문은 줄바꿈을 둔다
       const ref = str(v.ref, LIMITS.title);
       const version = str(v.version, LIMITS.title);
       if (!text || !ref || version === null) return null;

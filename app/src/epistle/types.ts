@@ -12,6 +12,10 @@ export const LIMITS = {
   checks: 16,
   notes: 8,
   actions: 16,
+  /** 조작 이름은 짧게 — 긴 유도 문구를 실을 자리를 주지 않는다 */
+  actionTitle: 24,
+  /** 수치의 절댓값 상한. 넘는 값은 그 칸을 버린다(그림·표기가 깨지지 않게) */
+  maxAbsNumber: 1e15,
   quote: 2000,
   /** 시각은 epoch 초. 밀리초가 들어오면 이 상한에 걸린다 (2100-01-01) */
   maxTs: 4_102_444_800,

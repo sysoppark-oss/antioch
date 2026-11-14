@@ -149,3 +149,16 @@ fn 다시_적어도_같은_모양() {
         assert_eq!(v, back, "{name}");
     }
 }
+
+#[test]
+fn 시각_창과_수_상한() {
+    let now = 1_794_355_000;
+    assert!(ts_in_window(now, now));
+    assert!(ts_in_window(now + 60, now));
+    assert!(!ts_in_window(now + 61, now));
+    assert!(!ts_in_window(4_102_444_799, now));
+    assert!(!ts_in_window(1, now));
+    assert!(number_ok(37.0));
+    assert!(!number_ok(1e308));
+    assert!(!number_ok(f64::NAN));
+}

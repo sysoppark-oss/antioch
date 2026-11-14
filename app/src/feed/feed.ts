@@ -6,6 +6,8 @@ export interface SlotInfo {
   id: string;
   /** 파이프 이름이 공개돼 있는가(실행 중) */
   running: boolean;
+  /** 공개된 파이프 이름이 바뀌었는지 알아보는 표식(값 자체는 뜻이 없다). 바뀌면 섀시가 재시도 대기를 푼다 */
+  token?: string;
 }
 
 export interface ModuleLink {
