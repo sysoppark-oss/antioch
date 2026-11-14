@@ -1,0 +1,135 @@
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded serde v1.0.229
+  Downloaded itoa v1.0.19
+  Downloaded windows-link v0.2.1
+  Downloaded quote v1.0.47
+  Downloaded zmij v1.0.23
+  Downloaded unicode-ident v1.0.27
+  Downloaded memchr v2.8.3
+  Downloaded proc-macro2 v1.0.107
+  Downloaded serde_derive v1.0.229
+  Downloaded serde_core v1.0.229
+  Downloaded serde_json v1.0.154
+  Downloaded syn v3.0.10
+  Downloaded windows-sys v0.61.2
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling windows-link v0.2.1
+   Compiling itoa v1.0.19
+   Compiling memchr v2.8.3
+   Compiling syn v3.0.10
+   Compiling windows-sys v0.61.2
+   Compiling serde_derive v1.0.229
+   Compiling epistle v0.1.0 (D:\a\antioch\antioch\crates\epistle)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 35.34s
+     Running unittests src\lib.rs (target\debug\deps\epistle-73b0981af7594867.exe)
+
+running 14 tests
+test discover::tests::꺼짐과_비정상_파이프_이름 ... ok
+test discover::tests::믿지_않는_등록 ... ok
+test discover::tests::hkcu만으로는_슬롯이_생기지_않고_서비스형은_hkcu를_보지_않는다 ... ok
+test discover::tests::id_형식과_중복과_개수_상한 ... ok
+test discover::tests::서비스형은_hklm_앱형은_hkcu의_파이프_이름 ... ok
+test names::tests::경로_비교 ... ok
+test names::tests::파이프_이름 ... ok
+test names::tests::관리자_폴더_아래 ... ok
+test rpc::tests::고정_예시를_읽는다 ... ok
+test rpc::tests::모양이_틀린_줄 ... ok
+test rpc::tests::오류_응답 ... ok
+test rpc::tests::길이와_깊이_상한 ... ok
+test rpc::tests::요청_한_줄 ... ok
+test rpc::tests::아무_바이트에도_죽지_않는다 ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\client.rs (target\debug\deps\client-36c4cedb35ba8ddc.exe)
+
+running 8 tests
+test 상대가_닫으면_기다리던_호출이_끝나고_끊김을_알린다 ... ok
+test 상한을_넘는_메시지는_바로_끊는다 ... ok
+test 오류_응답과_알림 ... ok
+test 요청과_응답을_id로_짝짓는다 ... ok
+test 우리가_놓으면_끊김_콜백을_부르지_않고_상대가_끊김을_본다 ... ok
+test hello는_판과_이름을_본다 ... ok
+test 틀린_줄은_몇_번까지_넘기고_계속되면_끊는다 ... ok
+test 답이_없으면_시한_뒤에_돌아오고_늦은_답은_버린다 ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests\contract.rs (target\debug\deps\contract-bcc34dd02298838d.exe)
+
+running 10 tests
+test 매니페스트 ... ok
+test 모듈_id와_자르기 ... ok
+test 다시_적어도_같은_모양 ... ok
+test hello_요청과_응답 ... ok
+test 상태 ... ok
+test 시각_창과_수_상한 ... ok
+test 사건_알림 ... ok
+test 위젯_자료 ... ok
+test 위젯에_html을_싣는_칸이_없다 ... ok
+test 판_협상 ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\win_pipe.rs (target\debug\deps\win_pipe-e36d982293afde55.exe)
+
+running 9 tests
+test 꺼진_슬롯과_없는_파이프 ... ok
+test 등록된_실행_파일이_아닌_서버에는_한_바이트도_보내지_않는다 ... ok
+test 다른_이름으로_답하는_서버는_hello에서_거른다 ... ok
+이 시험 프로세스의 session = 2
+test 서비스형은_session_0_의_서버만_받는다 ... ok
+test 첫_인스턴스_깃발은_이름_선점을_막는다 ... ok
+관리자 폴더: ["\\\\?\\C:\\Program Files", "\\\\?\\C:\\Program Files (x86)"]
+test 최종_경로와_관리자_폴더 ... ok
+test hkcu_실행_중_값은_글자열일_때만_읽는다 ... ok
+설치된 실행 파일: C:\Program Files\7-Zip\7z.exe
+[
+    Slot {
+        id: "zzci_ok",
+        kind: App,
+        exe_final: "\\\\?\\C:\\Program Files\\7-Zip\\7z.exe",
+        state: Running {
+            pipe: "\\\\.\\pipe\\zzci_ok-000023a00008000018e7ffc8b46d6e9c",
+        },
+    },
+    Slot {
+        id: "zzci_svc",
+        kind: Service,
+        exe_final: "\\\\?\\C:\\Program Files\\7-Zip\\7z.exe",
+        state: Running {
+            pipe: "\\\\.\\pipe\\zzci_svc-000023a00007000018e7ffc8b2b19dd0",
+        },
+    },
+    Slot {
+        id: "zzci_user",
+        kind: App,
+        exe_final: "\\\\?\\D:\\a\\antioch\\antioch\\target\\debug\\deps\\win_pipe-e36d982293afde55.exe",
+        state: Untrusted(
+            NotAdminFolder,
+        ),
+    },
+]
+test 등록부에서_슬롯을_찾는다 ... ok
+
+thread '등록된_실행_파일이_연_파이프에_붙어_주고받는다' (6512) panicked at crates\epistle\tests\win_pipe.rs:157:48:
+called `Result::unwrap()` on an `Err` value: Timeout
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test 등록된_실행_파일이_연_파이프에_붙어_주고받는다 ... FAILED
+
+failures:
+
+failures:
+    등록된_실행_파일이_연_파이프에_붙어_주고받는다
+
+test result: FAILED. 8 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.01s
+
+error: test failed, to rerun pass `-p epistle --test win_pipe`
+exit=101
