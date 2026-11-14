@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":1,"result":{"module":"storyfirewall","module_version":"0.1.6","api":[1,0],"granted":["read","operate"]}}

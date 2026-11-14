@@ -1,0 +1,3 @@
+{"widgets": [{"id": "today", "kind": "quote",
+  "text": "(구절 본문)", "ref": "요한복음 3:16", "version": "(번역본 이름)",
+  "open": {"view": "word", "ref": "jhn.3.16"}}]}

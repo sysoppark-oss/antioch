@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":1,"method":"rack.hello","params":{"client":"antioch","client_version":"0.1.0","api":[1,0]}}

@@ -1,0 +1,131 @@
+/* 안디옥 홀로그램 콘솔 — 기획자 승인 맛보기(2026-11-14)의 모양을 그대로 옮겼다 */
+:root{
+ --bg:#01030a; --ink:#e4f1ff; --dim:#8fa6cc; --faint:#5f7fa6;
+ --holo:#4fe3ff; --holo2:#9af6ff;
+ --sf:#b9adff; --nx:#58ffd6; --wd:#93c6ff; --sy:#5fd0ff; --m3:#ffd98a; --m4:#ff9ad5; --none:#56708f;
+ --t-ok:#30e08a; --t-caution:#ffb454; --t-danger:#ff5236; --t-off:#56708f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:
+  radial-gradient(1000px 560px at 50% 16%,#0b1c38 0,transparent 60%),
+  radial-gradient(760px 520px at 50% 122%,#06263f 0,transparent 60%),var(--bg);
+ color:var(--ink);font-family:"Segoe UI","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+ height:100dvh;overflow:hidden;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;position:relative;
+ user-select:none;-webkit-user-select:none}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;
+ background:repeating-linear-gradient(180deg,rgba(79,227,255,.06) 0 1px,transparent 1px 3px);mix-blend-mode:screen;opacity:.7}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:59;
+ background:radial-gradient(130% 90% at 50% 42%,transparent 58%,rgba(0,0,0,.6) 100%)}
+.scanbar{position:fixed;left:0;right:0;height:90px;z-index:61;pointer-events:none;mix-blend-mode:screen;
+ background:linear-gradient(180deg,transparent,rgba(79,227,255,.08) 48%,rgba(154,246,255,.15) 50%,rgba(79,227,255,.08) 52%,transparent);
+ animation:scan 6s linear infinite}
+@keyframes scan{0%{top:-12%}100%{top:112%}}
+
+.top{flex:none;display:flex;align-items:center;gap:11px;padding:11px 15px;z-index:20}
+.alogo{width:33px;height:33px;border-radius:9px;background:conic-gradient(from 210deg,#6f78e0,#58ffd6,#6f78e0);
+ display:flex;align-items:center;justify-content:center;font-weight:800;color:#06202a;font-size:16px;
+ box-shadow:0 0 20px rgba(79,227,255,.65),inset 0 1px 1px rgba(255,255,255,.5)}
+.top .nm b{font-size:16px;letter-spacing:.5px;text-shadow:0 0 14px rgba(79,227,255,.5)}
+.top .nm span{display:block;font-size:9px;color:var(--faint);letter-spacing:3px}
+.top .badge{margin-left:auto;font-size:10px;font-weight:700;color:#06202a;background:var(--holo2);
+ padding:4px 10px;border-radius:999px;box-shadow:0 0 16px rgba(79,227,255,.8)}
+
+.stage{flex:1;min-height:0;position:relative;overflow:hidden}
+/* 바닥 격자 — 승인 때 "강하게" */
+.floor{position:absolute;left:50%;bottom:-2%;width:280%;height:70%;transform:translateX(-50%) perspective(600px) rotateX(77deg);
+ transform-origin:bottom center;
+ background:repeating-linear-gradient(90deg,rgba(79,227,255,.42) 0 1.5px,transparent 1.5px 44px),
+  repeating-linear-gradient(0deg,rgba(79,227,255,.34) 0 1.5px,transparent 1.5px 44px);
+ -webkit-mask-image:linear-gradient(transparent,#000 38%);mask-image:linear-gradient(transparent,#000 38%);opacity:.85;pointer-events:none}
+.floor::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(154,246,255,.55) 0 1.5px,transparent 1.5px 44px);
+ animation:floorflow 2.6s linear infinite;opacity:.4}
+@keyframes floorflow{from{transform:translateY(0)}to{transform:translateY(44px)}}
+
+.hud{position:absolute;left:50%;top:47%;width:min(84vw,560px);height:min(84vw,560px);transform:translate(-50%,-50%);
+ z-index:2;pointer-events:none;opacity:.4}
+.hud svg{width:100%;height:100%;filter:drop-shadow(0 0 6px rgba(79,227,255,.4))}
+.rr1{animation:spin 20s linear infinite;transform-origin:center}
+.rr2{animation:spin 28s linear infinite reverse;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.viewport{position:absolute;inset:0;z-index:5;perspective:1300px;touch-action:none;cursor:grab}
+.viewport.grab{cursor:grabbing}
+.rail{position:absolute;left:0;top:0;width:100%;height:100%;transform-style:preserve-3d}
+
+.card{position:absolute;left:50%;top:47%;width:min(87vw,470px);max-height:82%;transform:translate(-50%,-50%);
+ will-change:transform,opacity;border-radius:14px;padding:13px 14px;border:1.5px solid var(--pc,var(--holo));
+ background:linear-gradient(180deg,rgba(79,227,255,.14),rgba(79,227,255,.035) 42%,rgba(5,20,34,.3)),rgba(2,9,20,.9);
+ box-shadow:0 0 0 1px rgba(154,246,255,.32),0 0 42px -6px var(--pc,var(--holo)),0 0 120px -20px var(--pc,var(--holo)),inset 0 0 50px rgba(79,227,255,.09);
+ overflow:hidden}
+.card::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:14px;z-index:3;
+ background:repeating-linear-gradient(180deg,rgba(154,246,255,.07) 0 2px,transparent 2px 4px);animation:flick 2.8s steps(1) infinite;opacity:.5}
+@keyframes flick{0%,88%,100%{opacity:.5}89%{opacity:.14}91%{opacity:.65}93%{opacity:.22}95%{opacity:.55}}
+.card::after{content:"";position:absolute;left:0;right:0;height:38%;top:-40%;pointer-events:none;z-index:4;
+ background:linear-gradient(180deg,transparent,rgba(154,246,255,.12),transparent);animation:cardscan 4.4s linear infinite}
+@keyframes cardscan{0%{top:-40%}100%{top:112%}}
+.br{position:absolute;width:15px;height:15px;border:2px solid var(--pc,var(--holo));opacity:0;transition:opacity .3s;z-index:6;box-shadow:0 0 8px var(--pc,var(--holo))}
+.br.tl{left:-3px;top:-3px;border-right:none;border-bottom:none}
+.br.tr{right:-3px;top:-3px;border-left:none;border-bottom:none}
+.br.bl{left:-3px;bottom:-3px;border-right:none;border-top:none}
+.br.br2{right:-3px;bottom:-3px;border-left:none;border-top:none}
+.card.focus .br{opacity:.9}
+
+.cap{position:relative;z-index:5;display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.cap .tag{width:9px;height:9px;border-radius:50%;flex:none;background:var(--pc,var(--holo));box-shadow:0 0 12px var(--pc,var(--holo));animation:tp 1.6s ease-in-out infinite}
+@keyframes tp{0%,100%{opacity:1}50%{opacity:.4}}
+.cap b{font-size:13px;letter-spacing:.2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+ text-shadow:-1px 0 rgba(255,60,90,.45),1px 0 rgba(60,210,255,.45),0 0 10px rgba(79,227,255,.45)}
+.cap .st{margin-left:auto;flex:none;font-size:9.5px;padding:2px 8px;border-radius:999px;display:flex;align-items:center;gap:5px}
+.cap .st i{width:6px;height:6px;border-radius:50%}
+.st.ok{background:rgba(48,224,138,.14);color:#7bf0c0}.st.ok i{background:var(--t-ok);box-shadow:0 0 6px var(--t-ok)}
+.st.caution{background:rgba(255,180,84,.14);color:#ffd39a}.st.caution i{background:var(--t-caution);box-shadow:0 0 6px var(--t-caution)}
+.st.danger{background:rgba(255,82,54,.14);color:#ff9a84}.st.danger i{background:var(--t-danger);box-shadow:0 0 6px var(--t-danger);animation:tp 1.3s infinite}
+.st.off{background:rgba(120,134,166,.12);color:#9fb2d0}.st.off i{background:var(--t-off)}
+.card.dimmed .tag{animation:none;background:var(--none);box-shadow:none}
+.card.dimmed .cap b{text-shadow:none;color:#9fb2d0}
+
+.dash{position:relative;z-index:5}
+.sum{font-size:10px;color:var(--dim);margin:-4px 0 9px}
+.kpirow,.tiles{display:flex;gap:7px;margin-bottom:9px}
+.kpi{flex:1;min-width:0;border:1px solid rgba(79,227,255,.3);border-radius:8px;padding:7px 9px;background:rgba(79,227,255,.05)}
+.kpi b{display:block;font-size:17px;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi b small{font-size:10px;font-weight:600;margin-left:2px}
+.kpi span{font-size:9px;color:var(--dim)}
+.kpi.danger b{color:#ff9a84}.kpi.ok b{color:#7bf0c0}.kpi.caution b{color:#ffd39a}.kpi.off b{color:#9fb2d0}
+.tile{flex:1;min-width:0;border:1px solid rgba(79,227,255,.25);border-radius:9px;padding:9px 6px;background:rgba(10,24,40,.4);text-align:center}
+.tile .ic{width:26px;height:26px;border-radius:7px;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#06202a;
+ background:var(--tc);box-shadow:0 0 10px -1px var(--tc),inset 0 1px 1px rgba(255,255,255,.5)}
+.tile .mv{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tile .mv small{font-size:9px}
+.tile .nm{font-size:9px;color:var(--dim);margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.lamp{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle;flex:none}
+.lamp.ok{background:var(--t-ok)}.lamp.caution{background:var(--t-caution)}.lamp.danger{background:var(--t-danger)}.lamp.off{background:var(--t-off)}
+.lamp.info{background:var(--holo)}
+.box{border:1px solid rgba(79,227,255,.22);border-radius:9px;overflow:hidden;background:rgba(6,16,30,.4);margin-bottom:9px}
+.box .ttl{font-size:9px;letter-spacing:1px;color:var(--faint);padding:6px 9px 4px}
+.frow{display:flex;gap:8px;align-items:center;padding:6px 9px;font-size:10.5px;border-top:1px solid rgba(79,227,255,.1)}
+.frow .t{color:#6f8fb6;font-family:ui-monospace,Consolas,monospace;font-size:9.5px;flex:none}
+.frow .m{color:var(--ink);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.frow .s{color:var(--dim);font-size:9.5px;flex:0 1 46%;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:ui-monospace,Consolas,monospace}
+.frow.none{color:var(--faint)}
+.viz{display:block;width:100%;height:auto;filter:drop-shadow(0 0 6px rgba(79,227,255,.45))}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.chip{display:inline-flex;align-items:center;font-size:10px;font-weight:700;border-radius:7px;padding:4px 9px;
+ color:var(--dim);border:1px solid rgba(79,227,255,.25);background:rgba(79,227,255,.05)}
+.chip.danger{color:#ff9a84;border-color:#6a2a1f;background:rgba(255,82,54,.12)}
+.chip.caution{color:#ffd39a;border-color:#6a4a1f;background:rgba(255,180,84,.1)}
+.foot{font-size:10.5px;color:var(--dim);line-height:1.5}
+.blank{font-size:13.5px;color:#7e94b6;text-align:center;padding:30px 6px;line-height:1.8;word-break:keep-all}
+
+/* 말씀 구절 — 「말씀 구절 표시 모양 (1판)」: 본문은 기본(가장 밝은) 글자색·한 단계 크게, 왼쪽 대표색 세로줄.
+   글자에 상태 색·투명도를 쓰지 않는다 */
+.verse{position:relative;z-index:5;border-left:3px solid var(--pc);padding-left:12px;margin:14px 4px 10px;max-width:46em}
+.verse p{color:var(--ink);font-size:15px;line-height:1.7;word-break:keep-all;white-space:pre-line}
+.verse cite{display:block;margin-top:8px;font-style:normal;font-size:12px;color:var(--pc)}
+
+.hint{position:absolute;left:0;right:0;bottom:30px;text-align:center;font-size:10.5px;color:#6f8fb6;z-index:8;pointer-events:none}
+.dots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:7px;z-index:8}
+.dots i{width:7px;height:7px;border-radius:50%;background:#2a3a52;box-shadow:inset 0 0 2px #000;transition:all .25s}
+.dots i.on{background:var(--holo2);box-shadow:0 0 9px var(--holo2)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}

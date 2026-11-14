@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws://localhost:1420 ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'">
+<link rel="icon" href="data:,">
+<title>안디옥</title>
+</head>
+<body>
+ <div class="scanbar"></div>
+ <header class="top">
+  <div class="alogo">A</div>
+  <div class="nm"><b>안디옥</b><span>홀로그램 콘솔</span></div>
+  <div class="badge" id="badge" hidden></div>
+ </header>
+ <main class="stage">
+  <div class="floor"></div>
+  <div class="hud">
+   <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <g class="rr1" fill="none" stroke="#4fe3ff" stroke-width="1">
+     <circle cx="100" cy="100" r="92" stroke-dasharray="3 7" opacity=".7"/>
+     <circle cx="100" cy="100" r="78" stroke-dasharray="1 13" opacity=".5"/>
+     <path d="M100 4 L100 16 M196 100 L184 100 M100 196 L100 184 M4 100 L16 100" stroke-width="2"/>
+    </g>
+    <g class="rr2" fill="none" stroke="#9af6ff" stroke-width="1">
+     <circle cx="100" cy="100" r="64" stroke-dasharray="40 10" opacity=".4"/>
+     <circle cx="100" cy="100" r="54" stroke-dasharray="2 6" opacity=".35"/>
+    </g>
+   </svg>
+  </div>
+  <div class="viewport" id="vp"><div class="rail" id="rail"></div></div>
+  <div class="hint">밀어서 넘기고 · 옆 화면을 누르면 가운데로 · 가운데를 다시 누르면 확대</div>
+  <div class="dots" id="dots"></div>
+ </main>
+ <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

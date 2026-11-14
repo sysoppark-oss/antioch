@@ -1,0 +1,4 @@
+{"id": "word", "title": "오늘의 말씀", "kind": "builtin", "version": "0.1.0", "api": [1, 0],
+ "summary": "오늘의 성경 구절", "capabilities": ["widgets"], "namespaces": [],
+ "widgets": [{"id": "today", "title": "오늘의 말씀", "kind": "quote", "sizes": ["2x1", "2x2"], "refresh_sec": 3600}],
+ "intents_in": [], "intents_out": [], "actions": []}

@@ -1,0 +1,10 @@
+[package]
+name = "epistle"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Epistle 1.0 메시지 타입과 검사 (안디옥 플랫폼). 전송·운영체제 호출 없음 — Linux 에서 전부 시험한다"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

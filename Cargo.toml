@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = ["crates/epistle"]
+
+[workspace.package]
+edition = "2021"
+license = "AGPL-3.0-only"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

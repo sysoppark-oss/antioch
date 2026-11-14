@@ -1,0 +1,2 @@
+{"state": "ok", "since": 1794355200, "notes": [],
+ "checks": [{"id": "collector", "state": "ok"}, {"id": "wfp", "state": "ok"}]}
