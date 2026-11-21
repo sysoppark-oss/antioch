@@ -159,6 +159,14 @@ fn m1_띄운_뒤_경로를_바꿔치기했을_때_프로세스의_실행_파일_
     let target_final = win::final_path(target.join("app.exe").to_str().unwrap()).unwrap_or_default();
     let fooled = !target_final.is_empty() && epistle::names::same_path(&resolved, &target_final);
     println!("M1|결과|돌려준 경로가 띄울 때의 경로 그대로인가={stale}|다시 열어 풀면 바꿔 둔 파일이 되는가={fooled}");
+    // C1 을 (가)로 고친 규칙으로 같은 상황을 판정한다: "진짜 설치 폴더"는 target, 등록된 Exe 는 target\app.exe 라고 치면
+    // 옛 규칙(풀어 낸 값만 비교)은 속고, 새 규칙(돌려준 값 자체가 설치 폴더 아래)은 거부해야 한다
+    let install_roots = vec![target.to_str().unwrap().to_string(), win::final_path(target.to_str().unwrap()).unwrap_or_default()];
+    let new_rule = epistle::names::server_image_ok(&w, &resolved, &target_final, &install_roots);
+    println!("M1|C1 고친 뒤|옛 규칙이 속는가={fooled}|새 규칙이 통과시키는가={new_rule}");
+    if fooled {
+        assert!(!new_rule, "바꿔치기한 서버를 새 규칙이 통과시켰다");
+    }
 
     kill(pid);
     std::thread::sleep(Duration::from_millis(300));

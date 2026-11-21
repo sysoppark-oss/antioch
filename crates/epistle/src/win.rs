@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, ERROR_IO_PENDING, ERROR_MORE_DATA, HANDLE, INVALID_HANDLE_VALUE, WAIT_OBJECT_0, WAIT_TIMEOUT};
 use windows_sys::Win32::Storage::FileSystem::{
-    CreateFileW, GetFinalPathNameByHandleW, ReadFile, WriteFile, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OVERLAPPED, FILE_GENERIC_READ,
+    CreateFileW, GetFinalPathNameByHandleW, GetShortPathNameW, ReadFile, WriteFile, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OVERLAPPED, FILE_GENERIC_READ,
     FILE_NAME_NORMALIZED, FILE_SHARE_DELETE, FILE_SHARE_NONE, FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_WRITE_ATTRIBUTES, FILE_WRITE_DATA,
     OPEN_EXISTING, SECURITY_IDENTIFICATION, SECURITY_SQOS_PRESENT, VOLUME_NAME_DOS,
 };
@@ -30,7 +30,7 @@ use windows_sys::Win32::UI::Shell::{FOLDERID_ProgramFiles, FOLDERID_ProgramFiles
 
 use crate::client::{Client, CloseReason, LineSink, LineSource};
 use crate::discover::{Host, RawModule, RegistryView, Slot, SlotState};
-use crate::names::{same_path, MODULES_KEY, RUNNING_KEY};
+use crate::names::{server_image_ok, MODULES_KEY, RUNNING_KEY};
 use crate::rpc::MAX_LINE;
 use crate::{valid_module_id, ModuleKind};
 
@@ -158,6 +158,31 @@ pub fn admin_roots() -> Vec<String> {
         }
         if !p.is_null() {
             unsafe { CoTaskMemFree(p as *const _) };
+        }
+    }
+    out
+}
+
+/// 짧은 이름(8.3) 모양의 경로. 그 볼륨이 짧은 이름을 만들지 않으면 받은 경로가 그대로 나온다
+fn short_path(path: &str) -> Option<String> {
+    let w = wide(path);
+    let mut buf = vec![0u16; 2048];
+    let n = unsafe { GetShortPathNameW(w.as_ptr(), buf.as_mut_ptr(), buf.len() as u32) } as usize;
+    if n == 0 || n >= buf.len() {
+        return None;
+    }
+    String::from_utf16(&buf[..n]).ok()
+}
+
+/// 서버 프로세스가 "떴다고 적힌 자리"로 받아들이는 폴더들: Program Files 의 긴 이름, 최종 경로, 짧은 이름 모양.
+/// 짧은 이름은 운영체제에 물은 값만 넣는다 — 다른 폴더가 그 이름을 가질 수 없다(같은 폴더 안에서 이름이 겹치지 않는다).
+pub fn launch_roots() -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for r in admin_roots() {
+        for form in [Some(r.clone()), final_path(&r), short_path(&r)].into_iter().flatten() {
+            if !out.iter().any(|o| o.eq_ignore_ascii_case(&form)) {
+                out.push(form);
+            }
         }
     }
     out
@@ -402,13 +427,16 @@ pub struct Verified {
 
 /// 파이프 서버 확인(5.2 의 3번, 8.3 의 3번). 통과하기 전에는 아무것도 보내지 않는다.
 ///
-/// - 앱형: 서버 프로세스의 실행 파일(최종 경로)이 등록된 Exe 와 같아야 한다. 알아내지 못하면 거부.
+/// - 앱형: 서버 프로세스의 실행 파일이 등록된 Exe 여야 한다(`names::server_image_ok`). 알아내지 못하면 거부.
+///   운영체제가 돌려준 경로 **그대로**가 `launch_roots`(관리자 폴더) 아래여야 한다 — 그 값은 띄울 때의 글자열이라,
+///   이름으로 다시 열어 푼 값만 보면 띄운 뒤 폴더를 연결로 바꿔치기한 가짜 서버가 통과한다(러너 측정 M1).
 /// - 서비스형: 서버가 session 0 이어야 한다(일반 사용자 프로세스는 session 0 에서 돌 수 없다 — 서비스가 죽은 뒤
 ///   남은 이름으로 가짜 서버를 세우는 것을 막는다). 실행 파일을 알아낼 수 있으면 등록된 Exe 와 같아야 한다.
-pub fn verify_server(h: &Handle, server_pid: u32, kind: ModuleKind, exe_final: &str) -> Result<Verified, ConnectError> {
-    let image = process_image(server_pid).and_then(|p| final_path(&p));
-    if let Some(img) = &image {
-        if !same_path(img, exe_final) {
+pub fn verify_server(h: &Handle, server_pid: u32, kind: ModuleKind, exe_final: &str, launch_roots: &[String]) -> Result<Verified, ConnectError> {
+    // (풀기 전의 값, 푼 값). 프로세스를 열지 못했거나 그 경로가 열리지 않으면 None
+    let image = process_image(server_pid).and_then(|raw| final_path(&raw).map(|resolved| (raw, resolved)));
+    if let Some((raw, resolved)) = &image {
+        if !server_image_ok(raw, resolved, exe_final, launch_roots) {
             return Err(ConnectError::ServerMismatch);
         }
     }
@@ -437,11 +465,21 @@ pub fn connect(
     on_notify: Box<dyn Fn(&str, serde_json::Value) + Send>,
     on_close: Box<dyn FnOnce(CloseReason) + Send>,
 ) -> Result<(Client, Verified), ConnectError> {
+    connect_in(slot, &launch_roots(), on_notify, on_close)
+}
+
+/// `connect` 와 같되 서버 프로세스가 떠 있어야 할 폴더들을 받는다(시험에서 시험 실행 파일의 폴더를 넣는 데 쓴다)
+pub fn connect_in(
+    slot: &Slot,
+    launch_roots: &[String],
+    on_notify: Box<dyn Fn(&str, serde_json::Value) + Send>,
+    on_close: Box<dyn FnOnce(CloseReason) + Send>,
+) -> Result<(Client, Verified), ConnectError> {
     let SlotState::Running { pipe } = &slot.state else {
         return Err(ConnectError::NotRunning);
     };
     let (h, spid) = open_unchecked(pipe).map_err(|e| ConnectError::Open(e.to_string()))?;
-    let verified = verify_server(&h, spid, slot.kind, &slot.exe_final)?;
+    let verified = verify_server(&h, spid, slot.kind, &slot.exe_final, launch_roots)?;
     let source = PipeLine::new(h.clone()).map_err(|e| ConnectError::Open(e.to_string()))?;
     let sink = PipeSink::new(h).map_err(|e| ConnectError::Open(e.to_string()))?;
     Ok((Client::start(Box::new(source), Box::new(sink), on_notify, on_close), verified))

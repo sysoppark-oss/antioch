@@ -63,6 +63,20 @@ pub fn under_admin_root(exe: &str, roots: &[String]) -> bool {
         .any(|r| e.len() > r.len() + 1 && e.starts_with(&r) && e.as_bytes()[r.len()] == b'\\')
 }
 
+/// 파이프 서버 프로세스의 실행 파일이 등록된 것인가 (C1 — 러너 측정 M1 로 확인된 틈을 막는다).
+///
+/// - `raw`: 운영체제가 돌려준 프로세스의 실행 파일 경로 **그대로**. 이 값은 "띄울 때 적어 둔 글자열"이라
+///   띄운 뒤 폴더를 연결(junction)로 바꿔치기해도 변하지 않는다.
+/// - `resolved`: `raw` 를 이름으로 다시 열어 푼 최종 경로. 바꿔치기한 뒤에는 **다른 파일**을 가리킬 수 있다.
+/// - `launch_roots`: 관리자만 고칠 수 있는 설치 폴더들. 긴 이름과 짧은 이름(`C:\PROGRA~1`) 모양을 함께 준다 —
+///   짧은 이름으로 띄운 정상 프로그램은 `raw` 가 짧은 이름 모양으로 나온다.
+///
+/// 규칙: `raw` 자체가 관리자 폴더 아래여야 하고(그 아래에서는 일반 권한으로 이름 바꾸기·연결 만들기를 못 한다),
+/// 풀어 낸 값이 등록된 Exe 와 같아야 한다.
+pub fn server_image_ok(raw: &str, resolved: &str, exe_final: &str, launch_roots: &[String]) -> bool {
+    under_admin_root(raw, launch_roots) && same_path(resolved, exe_final)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,6 +110,26 @@ mod tests {
         assert!(!same_path(r"\\server\share\netx.exe", r"\\server\share\netx.exe"), "다른 PC의 경로");
         assert!(!same_path(r"C:\a\..\b\x.exe", r"C:\a\..\b\x.exe"));
         assert!(!same_path(r"C:\a\x.exe:evil", r"C:\a\x.exe:evil"), "대체 데이터 스트림");
+    }
+
+    #[test]
+    fn c1_띄운_뒤_폴더를_바꿔치기한_서버는_통과하지_못한다() {
+        let roots = vec![r"C:\Program Files".to_string(), r"C:\PROGRA~1".to_string()];
+        let registered = r"\\?\C:\Program Files\NetX\netx.exe";
+        // 정상: Program Files 에서 떴다
+        assert!(server_image_ok(r"C:\Program Files\NetX\netx.exe", registered, registered, &roots));
+        // 정상: 짧은 이름으로 떴다(러너 측정: 돌려주는 값에 ~ 가 그대로 남는다)
+        assert!(server_image_ok(r"C:\PROGRA~1\NetX\netx.exe", registered, registered, &roots));
+        assert!(server_image_ok(r"C:\PROGRA~1\NETX~1\netx.exe", registered, registered, &roots));
+        // 공격(M1): 사용자 폴더에서 뜬 뒤 그 폴더를 설치 폴더로 가는 연결로 바꿨다 — 풀면 진짜 파일이 나온다
+        assert!(!server_image_ok(r"C:\Users\me\x\netx.exe", registered, registered, &roots));
+        // 짧은 이름을 흉내 낸 다른 폴더
+        assert!(!server_image_ok(r"C:\PROGRA~2\NetX\netx.exe", registered, registered, &roots));
+        assert!(!server_image_ok(r"C:\Users\me\PROGRA~1\NetX\netx.exe", registered, registered, &roots));
+        // 관리자 폴더에서 떴지만 다른 프로그램
+        assert!(!server_image_ok(r"C:\Program Files\Other\o.exe", r"\\?\C:\Program Files\Other\o.exe", registered, &roots));
+        // 짧은 이름이 꺼진 볼륨: 목록에 긴 이름만 있으면 짧은 이름 모양은 받지 않는다
+        assert!(!server_image_ok(r"C:\PROGRA~1\NetX\netx.exe", registered, registered, &roots[..1]));
     }
 
     #[test]

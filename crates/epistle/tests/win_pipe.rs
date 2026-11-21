@@ -139,6 +139,25 @@ fn slot(id: &str, kind: ModuleKind, exe_final: String, pipe: &str) -> Slot {
     Slot { id: id.into(), kind, exe_final, state: SlotState::Running { pipe: pipe.into() } }
 }
 
+/// 시험 실행 파일이 든 빌드 폴더를 "설치 폴더"로 쳐서 붙는다(시험용 서버는 이 시험 프로세스다)
+fn connect_here(
+    slot: &Slot,
+    on_notify: Box<dyn Fn(&str, Value) + Send>,
+    on_close: Box<dyn FnOnce(epistle::client::CloseReason) + Send>,
+) -> Result<(epistle::client::Client, win::Verified), ConnectError> {
+    win::connect_in(slot, &build_roots(), on_notify, on_close)
+}
+
+fn build_roots() -> Vec<String> {
+    let exe = std::env::current_exe().unwrap();
+    let dir = exe.parent().unwrap().parent().unwrap().to_str().unwrap().to_string();
+    let mut v = vec![dir.clone()];
+    if let Some(f) = win::final_path(&dir) {
+        v.push(f);
+    }
+    v
+}
+
 fn quiet() -> (Box<dyn Fn(&str, Value) + Send>, Box<dyn FnOnce(epistle::client::CloseReason) + Send>) {
     (Box::new(|_, _| {}), Box::new(|_| {}))
 }
@@ -148,7 +167,7 @@ fn 등록된_실행_파일이_연_파이프에_붙어_주고받는다() {
     let s = serve("zzci_a", "zzci_a");
     assert!(valid_pipe_name("zzci_a", &s.name));
     let (tx, events) = mpsc::channel();
-    let (client, verified) = win::connect(
+    let (client, verified) = connect_here(
         &slot("zzci_a", ModuleKind::App, me(), &s.name),
         Box::new(move |m, p| {
             let _ = tx.send((m.to_string(), p));
@@ -181,7 +200,7 @@ fn c2_읽지_않는_서버에_쓰다가_멈추지_않고_읽기_스레드도_살
     // 서버가 4초 동안 읽지 않는다. 파이프 버퍼(2MB)가 차면 쓰기가 끝나지 않는다
     let s = serve_after("zzci_h", "zzci_h", 4000);
     let (tx, closed) = mpsc::channel();
-    let (client, _) = win::connect(
+    let (client, _) = connect_here(
         &slot("zzci_h", ModuleKind::App, me(), &s.name),
         Box::new(|_, _| {}),
         Box::new(move |r| {
@@ -209,7 +228,7 @@ fn c2_읽지_않는_서버에_쓰다가_멈추지_않고_읽기_스레드도_살
 fn 상한을_넘는_메시지를_보내는_서버는_끊는다() {
     let s = serve("zzci_g", "zzci_g");
     let (tx, closed) = mpsc::channel();
-    let (client, _) = win::connect(
+    let (client, _) = connect_here(
         &slot("zzci_g", ModuleKind::App, me(), &s.name),
         Box::new(|_, _| {}),
         Box::new(move |r| {
@@ -227,7 +246,20 @@ fn 등록된_실행_파일이_아닌_서버에는_한_바이트도_보내지_않
     let s = serve("zzci_b", "zzci_b");
     let other = win::final_path(r"C:\Windows\System32\cmd.exe").expect("cmd.exe");
     let (n, c) = quiet();
-    let r = win::connect(&slot("zzci_b", ModuleKind::App, other, &s.name), n, c);
+    let r = connect_here(&slot("zzci_b", ModuleKind::App, other, &s.name), n, c);
+    assert_eq!(r.err(), Some(ConnectError::ServerMismatch));
+    s.done.recv_timeout(T).expect("서버 스레드 종료");
+    assert_eq!(s.received.load(Ordering::SeqCst), 0, "서버가 받은 메시지가 없어야 한다");
+}
+
+#[test]
+fn c1_설치_폴더_밖에서_뜬_서버는_경로가_맞아도_받지_않는다() {
+    // 실제 규칙(Program Files 만)으로 붙는다. 서버는 빌드 폴더에서 뜬 이 시험 프로세스이고,
+    // 등록된 Exe 를 서버의 실행 파일과 똑같이 맞춰 두어도(= 풀어 낸 값은 일치) 거부해야 한다
+    println!("C1|떴다고 받아들이는 폴더|{:?}", win::launch_roots());
+    let s = serve("zzci_i", "zzci_i");
+    let (n, c) = quiet();
+    let r = win::connect(&slot("zzci_i", ModuleKind::App, me(), &s.name), n, c);
     assert_eq!(r.err(), Some(ConnectError::ServerMismatch));
     s.done.recv_timeout(T).expect("서버 스레드 종료");
     assert_eq!(s.received.load(Ordering::SeqCst), 0, "서버가 받은 메시지가 없어야 한다");
@@ -237,7 +269,7 @@ fn 등록된_실행_파일이_아닌_서버에는_한_바이트도_보내지_않
 fn 다른_이름으로_답하는_서버는_hello에서_거른다() {
     let s = serve("zzci_c", "storyfirewall");
     let (n, c) = quiet();
-    let (client, _) = win::connect(&slot("zzci_c", ModuleKind::App, me(), &s.name), n, c).expect("접속");
+    let (client, _) = connect_here(&slot("zzci_c", ModuleKind::App, me(), &s.name), n, c).expect("접속");
     assert_eq!(client.hello("zzci_c", "0.1.0", T), Err(HelloError::WrongModule));
 }
 
@@ -248,7 +280,7 @@ fn 서비스형은_session_0_의_서버만_받는다() {
     assert!(unsafe { ProcessIdToSessionId(std::process::id(), &mut my_session) } != 0);
     println!("이 시험 프로세스의 session = {my_session}");
     let (n, c) = quiet();
-    let r = win::connect(&slot("zzci_d", ModuleKind::Service, me(), &s.name), n, c);
+    let r = connect_here(&slot("zzci_d", ModuleKind::Service, me(), &s.name), n, c);
     if my_session == 0 {
         assert!(r.is_ok(), "session 0 에서 돌면 통과해야 한다");
     } else {
@@ -262,10 +294,10 @@ fn 서비스형은_session_0_의_서버만_받는다() {
 fn 꺼진_슬롯과_없는_파이프() {
     let (n, c) = quiet();
     let off = Slot { id: "zzci_e".into(), kind: ModuleKind::App, exe_final: me(), state: SlotState::Off };
-    assert_eq!(win::connect(&off, n, c).err(), Some(ConnectError::NotRunning));
+    assert_eq!(connect_here(&off, n, c).err(), Some(ConnectError::NotRunning));
     let (n, c) = quiet();
     let gone = slot("zzci_e", ModuleKind::App, me(), &pipe_name("zzci_e"));
-    assert!(matches!(win::connect(&gone, n, c), Err(ConnectError::Open(_))));
+    assert!(matches!(connect_here(&gone, n, c), Err(ConnectError::Open(_))));
 }
 
 #[test]
