@@ -50,6 +50,8 @@ git show origin/ci-logs:epistle/run-2/windows-2025/test.log
 
 문서만 바뀐 커밋은 CI 가 돌지 않는다.
 
+`crates/epistle/tests/win_measure.rs` 는 판정하지 않고 **적는** 시험이다(문서로 확인되지 않는 Windows 동작을 러너에서 잰다). 결과는 로그의 `M1|`, `M2|` 줄이고, 정리한 것은 `docs/측정_섀시2차_M1_M2.md`.
+
 ## 라이선스
 
 AGPL-3.0-only. (`epistle` 크레이트를 따로 허용적 라이선스로 둘지는 미정 — 설계 문서 10장 6번)
