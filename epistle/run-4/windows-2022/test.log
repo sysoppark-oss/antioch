@@ -1,0 +1,176 @@
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded windows-link v0.2.1
+  Downloaded serde_core v1.0.229
+  Downloaded itoa v1.0.19
+  Downloaded unicode-ident v1.0.27
+  Downloaded quote v1.0.47
+  Downloaded serde_derive v1.0.229
+  Downloaded zmij v1.0.23
+  Downloaded proc-macro2 v1.0.107
+  Downloaded serde_json v1.0.154
+  Downloaded memchr v2.8.3
+  Downloaded syn v3.0.10
+  Downloaded serde v1.0.229
+  Downloaded windows-sys v0.61.2
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling memchr v2.8.3
+   Compiling syn v3.0.10
+   Compiling windows-link v0.2.1
+   Compiling itoa v1.0.19
+   Compiling windows-sys v0.61.2
+   Compiling serde_derive v1.0.229
+   Compiling epistle v0.1.0 (D:\a\antioch\antioch\crates\epistle)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 30.74s
+     Running unittests src\lib.rs (target\debug\build\epistle/f4b29c573a7c2b22\out\epistle-f4b29c573a7c2b22.exe)
+
+running 15 tests
+test discover::tests::꺼짐과_비정상_파이프_이름 ... ok
+test discover::tests::믿지_않는_등록 ... ok
+test discover::tests::hkcu만으로는_슬롯이_생기지_않고_서비스형은_hkcu를_보지_않는다 ... ok
+test discover::tests::id_형식과_중복과_개수_상한 ... ok
+test discover::tests::서비스형은_hklm_앱형은_hkcu의_파이프_이름 ... ok
+test names::tests::c1_띄운_뒤_폴더를_바꿔치기한_서버는_통과하지_못한다 ... ok
+test names::tests::경로_비교 ... ok
+test names::tests::관리자_폴더_아래 ... ok
+test names::tests::파이프_이름 ... ok
+test rpc::tests::고정_예시를_읽는다 ... ok
+test rpc::tests::오류_응답 ... ok
+test rpc::tests::길이와_깊이_상한 ... ok
+test rpc::tests::모양이_틀린_줄 ... ok
+test rpc::tests::요청_한_줄 ... ok
+test rpc::tests::아무_바이트에도_죽지_않는다 ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\client.rs (target\debug\build\epistle/b9469c8f0855f1a9\out\client-b9469c8f0855f1a9.exe)
+
+running 14 tests
+
+thread '<unnamed>' (4800) panicked at crates\epistle\tests\client.rs:33:13:
+알림 콜백이 죽음(시험)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test c6_정상_줄을_섞어_보내도_틀린_줄_세기는_줄지_않는다 ... ok
+test hello는_판과_이름을_본다 ... ok
+test q5_닫힌_뒤에_들어온_호출은_표에_남지_않고_바로_끝난다 ... ok
+test c3_알림_콜백이_죽어도_연결이_산_것처럼_남지_않는다 ... ok
+test q5_알림이_초당_상한을_넘으면_버리고_센다 ... ok
+test 상대가_닫으면_기다리던_호출이_끝나고_끊김을_알린다 ... ok
+test 상한을_넘는_메시지는_바로_끊는다 ... ok
+test 오류_응답과_알림 ... ok
+test 요청과_응답을_id로_짝짓는다 ... ok
+test 우리가_놓으면_끊김_콜백을_부르지_않고_상대가_끊김을_본다 ... ok
+test 틀린_줄은_몇_번까지_넘기고_계속되면_끊는다 ... ok
+test c2_쓰기가_시한을_넘기면_호출이_시한_초과로_돌아온다 ... ok
+test 답이_없으면_시한_뒤에_돌아오고_늦은_답은_버린다 ... ok
+test c6_틀린_줄_세기는_시간이_지나면_덜어_준다 ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+
+     Running tests\contract.rs (target\debug\build\epistle/5d43391cadeac755\out\contract-5d43391cadeac755.exe)
+
+running 10 tests
+test 모듈_id와_자르기 ... ok
+test hello_요청과_응답 ... ok
+test 매니페스트 ... ok
+test 다시_적어도_같은_모양 ... ok
+test 상태 ... ok
+test 시각_창과_수_상한 ... ok
+test 사건_알림 ... ok
+test 판_협상 ... ok
+test 위젯_자료 ... ok
+test 위젯에_html을_싣는_칸이_없다 ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\win_measure.rs (target\debug\build\epistle/ae7092cd421c9562\out\win_measure-ae7092cd421c9562.exe)
+
+running 4 tests
+test helper_entry ... ok
+M1|운영체제|Microsoft Windows [Version 10.0.20348.5870]
+M1|띄울 실행 파일|C:\Users\RUNNER~1\AppData\Local\Temp\epistle_m1_7408\x\app.exe
+M2|A 의 종료|exit code: 0|기록=1900 5732
+M1|짧은 이름 설정|The volume state is: 0 (8dot3 name creation is ENABLED)  The registry state is: 2 (Per volume setting - the default)    Based on the above settings, 8dot3 name creation is ENABLED on "C:"
+M1|C:\PROGRA~1 를 풀면|\\?\C:\Program Files
+M2|A 는 끝났는가|A 의 실행 파일 조회=(실패: A device attached to the system is not functioning. (os error 31))
+M2|결과|A=1900|B=5732|GetNamedPipeServerProcessId=1900|누구인가=A (파이프를 만들고 끝난 프로세스)|그 PID 의 실행 파일 조회=(실패: A device attached to the system is not functioning. (os error 31))
+test m2_서버_핸들을_물려주고_끝난_뒤의_서버_pid ... ok
+M1|① 띄운 직후|win32=C:\Users\RUNNER~1\AppData\Local\Temp\epistle_m1_7408\x\app.exe|native=\Device\HarddiskVolume4\Users\RUNNER~1\AppData\Local\Temp\epistle_m1_7408\x\app.exe|win32 경로를 다시 열어 푼 값=\\?\C:\Users\runneradmin\AppData\Local\Temp\epistle_m1_7408\x\app.exe
+M1|② 실행 중인 파일이 든 폴더의 이름 바꾸기|됨
+M1|② 옮긴 뒤(x 는 없음)|win32=C:\Users\RUNNER~1\AppData\Local\Temp\epistle_m1_7408\x\app.exe|native=\Device\HarddiskVolume4\Users\RUNNER~1\AppData\Local\Temp\epistle_m1_7408\x\app.exe|win32 경로를 다시 열어 푼 값=(열지 못함)
+M1|③ 연결(junction) 만들기|됨|Junction created for C:\Users\RUNNER~1\AppData\Local\Temp\epistle_m1_7408\x <<===>> C:\Users\RUNNER~1\AppData\Local\Temp\epistle_m1_7408\target
+M1|③ x 를 연결로 바꾼 뒤|win32=C:\Users\RUNNER~1\AppData\Local\Temp\epistle_m1_7408\x\app.exe|native=\Device\HarddiskVolume4\Users\RUNNER~1\AppData\Local\Temp\epistle_m1_7408\x\app.exe|win32 경로를 다시 열어 푼 값=\\?\C:\Users\runneradmin\AppData\Local\Temp\epistle_m1_7408\target\app.exe
+M1|결과|돌려준 경로가 띄울 때의 경로 그대로인가=true|다시 열어 풀면 바꿔 둔 파일이 되는가=true
+M1|C1 고친 뒤|옛 규칙이 속는가=true|새 규칙이 통과시키는가=false
+test m1_띄운_뒤_경로를_바꿔치기했을_때_프로세스의_실행_파일_경로 ... ok
+M1|짧은 이름으로 띄움|띄운 경로=C:\PROGRA~1\PowerShell\7\pwsh.exe|win32=C:\PROGRA~1\PowerShell\7\pwsh.exe|native=\Device\HarddiskVolume4\PROGRA~1\PowerShell\7\pwsh.exe|풀기 전 값에 ~ 가 남아 있는가=true
+test m1_짧은_이름으로_띄운_프로세스의_실행_파일_경로 ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.59s
+
+     Running tests\win_pipe.rs (target\debug\build\epistle/627a36752bfa018a\out\win_pipe-627a36752bfa018a.exe)
+
+running 12 tests
+test 꺼진_슬롯과_없는_파이프 ... ok
+C1|떴다고 받아들이는 폴더|["C:\\Program Files", "\\\\?\\C:\\Program Files", "C:\\PROGRA~1", "C:\\Program Files (x86)", "\\\\?\\C:\\Program Files (x86)", "C:\\PROGRA~2"]
+test 다른_이름으로_답하는_서버는_hello에서_거른다 ... ok
+test c1_설치_폴더_밖에서_뜬_서버는_경로가_맞아도_받지_않는다 ... ok
+test 등록된_실행_파일이_아닌_서버에는_한_바이트도_보내지_않는다 ... ok
+test hkcu_실행_중_값은_글자열일_때만_읽는다 ... ok
+설치된 실행 파일: C:\Program Files\7-Zip\7z.exe
+test 상한을_넘는_메시지를_보내는_서버는_끊는다 ... ok
+이 시험 프로세스의 session = 2
+test 서비스형은_session_0_의_서버만_받는다 ... ok
+test 첫_인스턴스_깃발은_이름_선점을_막는다 ... ok
+관리자 폴더: ["\\\\?\\C:\\Program Files", "\\\\?\\C:\\Program Files (x86)"]
+test 최종_경로와_관리자_폴더 ... ok
+[
+    Slot {
+        id: "zzci_ok",
+        kind: App,
+        exe_final: "\\\\?\\C:\\Program Files\\7-Zip\\7z.exe",
+        state: Running {
+            pipe: "\\\\.\\pipe\\zzci_ok-000016fc000b000018ea2c3701196268",
+        },
+    },
+    Slot {
+        id: "zzci_svc",
+        kind: Service,
+        exe_final: "\\\\?\\C:\\Program Files\\7-Zip\\7z.exe",
+        state: Running {
+            pipe: "\\\\.\\pipe\\zzci_svc-000016fc000a000018ea2c36fff50c84",
+        },
+    },
+    Slot {
+        id: "zzci_user",
+        kind: App,
+        exe_final: "\\\\?\\D:\\a\\antioch\\antioch\\target\\debug\\build\\epistle\\627a36752bfa018a\\out\\win_pipe-627a36752bfa018a.exe",
+        state: Untrusted(
+            NotAdminFolder,
+        ),
+    },
+]
+test 등록부에서_슬롯을_찾는다 ... ok
+C2|쓰기 0|Some(Timeout)|312ms
+test 등록된_실행_파일이_연_파이프에_붙어_주고받는다 ... ok
+C2|쓰기 1|Some(Timeout)|624ms
+C2|쓰기 2|Some(Timeout)|970ms
+C2|쓰기 3|Some(Timeout)|1314ms
+C2|쓰기 4|Some(Timeout)|1658ms
+test c2_읽지_않는_서버에_쓰다가_멈추지_않고_읽기_스레드도_살아_있다 ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.20s
+
+   Doc-tests epistle
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit=0
