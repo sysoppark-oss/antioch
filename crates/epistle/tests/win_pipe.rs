@@ -424,3 +424,31 @@ fn 등록부에서_슬롯을_찾는다() {
     assert_eq!(svc.state, SlotState::Running { pipe: svc_pipe }, "HKCU 의 가짜 이름이 아니라 HKLM 의 이름");
     assert!(!slots.iter().any(|s| s.id.eq_ignore_ascii_case("zzci-bad")));
 }
+
+#[test]
+fn q3_같은_파일은_글자가_달라도_같고_사본은_다르다() {
+    let dir = std::env::temp_dir().join(format!("antioch-q3-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let a = dir.join("Server.exe");
+    std::fs::write(&a, b"one").unwrap();
+    let link = dir.join("link.exe");
+    std::fs::hard_link(&a, &link).unwrap();
+    let copy = dir.join("copy.exe");
+    std::fs::copy(&a, &copy).unwrap();
+    let s = |p: &std::path::Path| p.to_string_lossy().to_string();
+
+    assert!(win::file_id(&s(&a)).is_some(), "파일 식별자를 얻지 못했다");
+    // 대소문자·`\\?\` 접두사·`.` 조각이 달라도 같은 파일
+    assert!(win::same_file(&s(&a), &s(&a).to_uppercase()));
+    assert!(win::same_file(&s(&a), &format!(r"\\?\{}", s(&a))));
+    assert!(win::same_file(&s(&a), &s(&dir.join(".").join("server.exe"))));
+    // 하드 링크는 같은 파일, 내용이 같은 사본은 다른 파일
+    assert!(win::same_file(&s(&a), &s(&link)));
+    assert!(!win::same_file(&s(&a), &s(&copy)));
+    // 없는 파일은 무엇과도 같지 않다(자기 자신과도)
+    let none = s(&dir.join("none.exe"));
+    assert!(!win::same_file(&none, &none));
+    assert!(!win::same_file(&s(&a), &none));
+    let _ = std::fs::remove_dir_all(&dir);
+}

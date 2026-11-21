@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, ERROR_IO_PENDING, ERROR_MORE_DATA, HANDLE, INVALID_HANDLE_VALUE, WAIT_OBJECT_0, WAIT_TIMEOUT};
 use windows_sys::Win32::Storage::FileSystem::{
-    CreateFileW, GetFinalPathNameByHandleW, GetShortPathNameW, ReadFile, WriteFile, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OVERLAPPED, FILE_GENERIC_READ,
+    CreateFileW, FileIdInfo, GetFileInformationByHandleEx, GetFinalPathNameByHandleW, GetShortPathNameW, FILE_ID_INFO, ReadFile, WriteFile, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OVERLAPPED, FILE_GENERIC_READ,
     FILE_NAME_NORMALIZED, FILE_SHARE_DELETE, FILE_SHARE_NONE, FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_WRITE_ATTRIBUTES, FILE_WRITE_DATA,
     OPEN_EXISTING, SECURITY_IDENTIFICATION, SECURITY_SQOS_PRESENT, VOLUME_NAME_DOS,
 };
@@ -138,6 +138,27 @@ pub fn final_path(path: &str) -> Option<String> {
         return None;
     }
     String::from_utf16(&buf[..n]).ok()
+}
+
+/// 파일 식별자: (볼륨 일련번호, 128비트 파일 번호). 글자가 달라도 같은 파일이면 같고, 사본이면 다르다(답변반영 섀시 2차 Q3).
+/// 파일을 열 수 없거나 파일 시스템이 식별자를 주지 않으면 None — 부르는 쪽은 None 을 "같지 않음"으로 다룬다.
+pub fn file_id(path: &str) -> Option<(u64, [u8; 16])> {
+    let w = wide(path);
+    let h = unsafe {
+        CreateFileW(w.as_ptr(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, std::ptr::null(), OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, std::ptr::null_mut())
+    };
+    if h == INVALID_HANDLE_VALUE {
+        return None;
+    }
+    let h = Owned(h);
+    let mut info: FILE_ID_INFO = unsafe { std::mem::zeroed() };
+    let ok = unsafe { GetFileInformationByHandleEx(h.0, FileIdInfo, &mut info as *mut _ as *mut _, std::mem::size_of::<FILE_ID_INFO>() as u32) } != 0;
+    ok.then(|| (info.VolumeSerialNumber, info.FileId.Identifier))
+}
+
+/// 두 경로가 같은 파일을 가리키는가 — 글자 비교가 아니라 파일 식별자로 본다. 어느 쪽이든 식별자를 못 얻으면 false
+pub fn same_file(a: &str, b: &str) -> bool {
+    matches!((file_id(a), file_id(b)), (Some(x), Some(y)) if x == y)
 }
 
 /// Program Files 폴더들 — 환경 변수가 아니라 운영체제에 묻는다(환경 변수는 실행한 쪽이 바꿀 수 있다)
@@ -437,7 +458,9 @@ pub fn verify_server(h: &Handle, server_pid: u32, kind: ModuleKind, exe_final: &
     // (풀기 전의 값, 푼 값). 프로세스를 열지 못했거나 그 경로가 열리지 않으면 None
     let image = process_image(server_pid).and_then(|raw| final_path(&raw).map(|resolved| (raw, resolved)));
     if let Some((raw, resolved)) = &image {
-        if !server_image_ok(raw, resolved, exe_final, launch_roots) {
+        // 글자 규칙(돌려받은 값 그대로 설치 폴더 아래 + 푼 값이 등록된 Exe)에 더해, 같은 파일인지는 파일 식별자로 본다(Q3).
+        // 이름으로 다시 여는 것은 그대로라 C1 의 틈을 이것이 닫는 것은 아니다 — 그것은 "돌려받은 값 그대로" 규칙이 막는다.
+        if !server_image_ok(raw, resolved, exe_final, launch_roots) || !same_file(raw, exe_final) {
             return Err(ConnectError::ServerMismatch);
         }
     }

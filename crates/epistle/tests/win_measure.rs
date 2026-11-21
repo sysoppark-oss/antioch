@@ -242,3 +242,29 @@ fn m2_서버_핸들을_물려주고_끝난_뒤의_서버_pid() {
     kill(rb);
     let _ = std::fs::remove_dir_all(&base);
 }
+
+/// Q7 을 짜기 전에: 설치 폴더의 기본 소유자·권한을 읽어 적는다(판정하지 않는다).
+#[test]
+fn q7_설치_폴더의_기본_소유자와_권한() {
+    let pf = std::env::var("ProgramFiles").unwrap_or_else(|_| r"C:\Program Files".into());
+    let pf86 = std::env::var("ProgramFiles(x86)").unwrap_or_else(|_| r"C:\Program Files (x86)".into());
+    // 관리자 설치를 흉내 낸다: Program Files 아래에 폴더와 파일을 만든다(러너는 관리자)
+    let made = Path::new(&pf).join(format!("antioch-q7-{}", std::process::id()));
+    let made_ok = std::fs::create_dir_all(&made).is_ok();
+    let file = made.join("module.exe");
+    let file_ok = made_ok && std::fs::write(&file, b"x").is_ok();
+    println!("Q7|만들기|폴더={made_ok}|파일={file_ok}");
+    let mut targets = vec![pf.clone(), pf86, format!(r"{pf}\Common Files")];
+    if made_ok {
+        targets.push(made.to_string_lossy().to_string());
+    }
+    if file_ok {
+        targets.push(file.to_string_lossy().to_string());
+    }
+    for t in &targets {
+        let script = format!("$a = Get-Acl -LiteralPath '{t}'; Write-Output ($a.Owner + '|' + $a.Sddl)");
+        let (ok, out) = run("powershell", &["-NoProfile", "-NonInteractive", "-Command", &script]);
+        println!("Q7|{t}|ok={ok}|{}", out.trim().replace('\n', " "));
+    }
+    let _ = std::fs::remove_dir_all(&made);
+}
