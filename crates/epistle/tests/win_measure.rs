@@ -262,9 +262,13 @@ fn q7_설치_폴더의_기본_소유자와_권한() {
         targets.push(file.to_string_lossy().to_string());
     }
     for t in &targets {
-        let script = format!("$a = Get-Acl -LiteralPath '{t}'; Write-Output ($a.Owner + '|' + $a.Sddl)");
+        // Get-Acl 은 러너의 시험 프로세스에서 모듈을 못 불러온다 → .NET 형식으로 직접 읽는다
+        let class = if Path::new(t).is_dir() { "DirectorySecurity" } else { "FileSecurity" };
+        let script = format!("(New-Object System.Security.AccessControl.{class}('{t}','Owner,Group,Access')).GetSecurityDescriptorSddlForm('All')");
         let (ok, out) = run("powershell", &["-NoProfile", "-NonInteractive", "-Command", &script]);
-        println!("Q7|{t}|ok={ok}|{}", out.trim().replace('\n', " "));
+        println!("Q7|sddl|{t}|ok={ok}|{out}");
+        let (ok, out) = run("icacls", &[t]);
+        println!("Q7|icacls|{t}|ok={ok}|{out}");
     }
     let _ = std::fs::remove_dir_all(&made);
 }
