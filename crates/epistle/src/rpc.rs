@@ -92,7 +92,9 @@ pub fn parse_incoming(line: &[u8]) -> Result<Incoming, BadLine> {
             if method.is_empty() || method.len() > 64 || !method.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'.' || c == b'_') {
                 return Err(BadLine::NotRpc);
             }
-            Ok(Incoming::Notification { method: method.to_string(), params: obj.get("params").cloned().unwrap_or(Value::Null) })
+            // 알림의 params 는 객체다. 없거나 객체가 아니면 틀린 줄로 센다(규격 보강 2판 3장 2번)
+            let params = obj.get("params").filter(|p| p.is_object()).cloned().ok_or(BadLine::NotRpc)?;
+            Ok(Incoming::Notification { method: method.to_string(), params })
         }
         // 응답: id 있고 method 없음, result 와 error 가운데 하나
         (Some(id), None) => {
@@ -121,6 +123,32 @@ mod tests {
         assert!(matches!(r, Incoming::Response { id: 1, result: Ok(_) }));
         let n = parse_incoming(include_bytes!("../../../fixtures/event_notification.json")).unwrap();
         assert!(matches!(n, Incoming::Notification { ref method, .. } if method == "rack.event"));
+    }
+
+    #[test]
+    fn 알림의_params_는_객체여야_한다() {
+        let ok = br#"{"jsonrpc":"2.0","method":"rack.event","params":{}}"#;
+        assert!(matches!(parse_incoming(ok), Ok(Incoming::Notification { .. })));
+        for bad in [
+            &br#"{"jsonrpc":"2.0","method":"rack.event"}"#[..],
+            br#"{"jsonrpc":"2.0","method":"rack.event","params":null}"#,
+            br#"{"jsonrpc":"2.0","method":"rack.event","params":[1]}"#,
+            br#"{"jsonrpc":"2.0","method":"rack.event","params":"x"}"#,
+        ] {
+            assert_eq!(parse_incoming(bad).err(), Some(BadLine::NotRpc), "{}", String::from_utf8_lossy(bad));
+        }
+    }
+
+    #[test]
+    fn 응답의_id_는_정수만_받는다() {
+        assert!(matches!(parse_incoming(br#"{"jsonrpc":"2.0","id":7,"result":{}}"#), Ok(Incoming::Response { id: 7, .. })));
+        for bad in [
+            &br#"{"jsonrpc":"2.0","id":"7","result":{}}"#[..],
+            br#"{"jsonrpc":"2.0","id":null,"result":{}}"#,
+            br#"{"jsonrpc":"2.0","id":7.5,"result":{}}"#,
+        ] {
+            assert_eq!(parse_incoming(bad).err(), Some(BadLine::NotRpc), "{}", String::from_utf8_lossy(bad));
+        }
     }
 
     #[test]

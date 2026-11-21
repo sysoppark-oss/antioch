@@ -20,7 +20,7 @@ use windows_sys::Win32::System::Pipes::{
     GetNamedPipeServerProcessId, GetNamedPipeServerSessionId, SetNamedPipeHandleState, WaitNamedPipeW, PIPE_READMODE_MESSAGE,
 };
 use windows_sys::Win32::System::Registry::{
-    RegCloseKey, RegEnumKeyExW, RegGetValueW, RegOpenKeyExW, HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, RRF_RT_REG_SZ,
+    RegCloseKey, RegEnumKeyExW, RegGetValueW, RegOpenKeyExW, HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, KEY_WOW64_64KEY, RRF_RT_REG_SZ, RRF_SUBKEY_WOW6464KEY,
 };
 use windows_sys::Win32::System::Threading::{
     CreateEventW, OpenProcess, QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
@@ -61,8 +61,9 @@ pub fn reg_sz(hive: HKEY, key: &str, value: &str) -> Option<String> {
     let (k, v) = (wide(key), wide(value));
     let mut buf = [0u16; 1024];
     let mut cb = (buf.len() * 2) as u32;
+    // 64비트 보기만 읽는다(규격 보강 2판 2장 2번 — HKCU 도 같은 깃발을 명시한다)
     // RRF_RT_REG_SZ: 다른 형식(REG_DWORD, REG_EXPAND_SZ …)이면 실패한다. 버퍼보다 길면 ERROR_MORE_DATA 로 실패한다
-    let r = unsafe { RegGetValueW(hive, k.as_ptr(), v.as_ptr(), RRF_RT_REG_SZ, std::ptr::null_mut(), buf.as_mut_ptr() as *mut _, &mut cb) };
+    let r = unsafe { RegGetValueW(hive, k.as_ptr(), v.as_ptr(), RRF_RT_REG_SZ | RRF_SUBKEY_WOW6464KEY, std::ptr::null_mut(), buf.as_mut_ptr() as *mut _, &mut cb) };
     if r != 0 {
         return None;
     }
@@ -79,7 +80,7 @@ impl RegistryView for WinRegistry {
     fn modules(&self) -> Vec<RawModule> {
         let mut out = Vec::new();
         let mut key: HKEY = std::ptr::null_mut();
-        if unsafe { RegOpenKeyExW(HKEY_LOCAL_MACHINE, wide(MODULES_KEY).as_ptr(), 0, KEY_READ, &mut key) } != 0 {
+        if unsafe { RegOpenKeyExW(HKEY_LOCAL_MACHINE, wide(MODULES_KEY).as_ptr(), 0, KEY_READ | KEY_WOW64_64KEY, &mut key) } != 0 {
             return out; // 키가 없음 = 등록된 모듈 없음
         }
         for i in 0..MAX_ENUM {
