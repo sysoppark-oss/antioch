@@ -1,6 +1,6 @@
 //! 클라이언트를 메모리 전송으로 시험한다: 요청·응답 짝짓기, 알림, 시한, 끊김, 틀린 줄.
 
-use epistle::client::{mem, CallError, Client, CloseReason, HelloError, MAX_BAD_LINES};
+use epistle::client::{mem, CallError, Client, ClientOptions, CloseReason, HelloError, LineSink, MAX_BAD_LINES};
 use epistle::rpc::{RpcError, MAX_LINE, VERSION_MISMATCH};
 use serde_json::{json, Value};
 use std::sync::mpsc;
@@ -17,17 +17,26 @@ struct Rig {
 }
 
 fn rig() -> Rig {
+    rig_with(ClientOptions::default())
+}
+
+fn rig_with(opts: ClientOptions) -> Rig {
     let (source, sink, peer) = mem::pair();
     let events = Arc::new(Mutex::new(Vec::new()));
     let ev = events.clone();
     let (tx, closed) = mpsc::channel();
-    let client = Client::start(
+    let client = Client::start_with(
         source,
         sink,
-        Box::new(move |m, p| ev.lock().unwrap().push((m.to_string(), p))),
+        Box::new(move |m, p| {
+            // 시험용: 이 알림을 받으면 콜백이 죽는다
+            assert!(m != "boom", "알림 콜백이 죽음(시험)");
+            ev.lock().unwrap().push((m.to_string(), p))
+        }),
         Box::new(move |r| {
             let _ = tx.send(r);
         }),
+        opts,
     );
     Rig { client: Arc::new(client), peer, events, closed }
 }
@@ -161,4 +170,83 @@ fn hello는_판과_이름을_본다() {
     let mut odd = ok;
     odd["granted"] = json!(["read", "root"]);
     assert_eq!(hello(odd), Err(HelloError::Malformed));
+}
+
+// ── 검증 답변(섀시 2차) 반영 ─────────────────────────────────────────────
+
+#[test]
+fn c3_알림_콜백이_죽어도_연결이_산_것처럼_남지_않는다() {
+    let r = rig();
+    let a = call_bg(&r.client, "rack.health", Duration::from_secs(30));
+    r.peer.next_request().unwrap();
+    r.peer.send(json!({"jsonrpc":"2.0","method":"boom","params":{}}));
+    // 기다리던 호출이 시한(30초)을 다 쓰지 않고 바로 끝난다
+    assert_eq!(a.recv_timeout(T).unwrap(), Err(CallError::Closed));
+    assert_eq!(r.closed.recv_timeout(T).unwrap(), CloseReason::Panicked);
+    assert!(r.client.is_closed());
+    assert_eq!(r.client.call("rack.health", json!({}), T), Err(CallError::Closed));
+}
+
+#[test]
+fn c2_쓰기가_시한을_넘기면_호출이_시한_초과로_돌아온다() {
+    struct Stuck;
+    impl LineSink for Stuck {
+        fn write_line(&mut self, _line: &[u8], timeout: Duration) -> std::io::Result<()> {
+            std::thread::sleep(timeout);
+            Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "쓰기 시한 초과"))
+        }
+    }
+    let (source, _sink, _peer) = mem::pair();
+    let client = Client::start(source, Box::new(Stuck), Box::new(|_, _| {}), Box::new(|_| {}));
+    let t0 = std::time::Instant::now();
+    assert_eq!(client.call("rack.health", json!({}), Duration::from_millis(100)), Err(CallError::Timeout));
+    assert!(t0.elapsed() < Duration::from_secs(2));
+}
+
+#[test]
+fn c6_틀린_줄_세기는_시간이_지나면_덜어_준다() {
+    // 덜어 주는 간격을 짧게 잡고, 그 간격보다 길게 띄워 틀린 줄을 상한의 두 배 넘게 보낸다
+    let r = rig_with(ClientOptions { bad_line_forgive: Duration::from_millis(20), ..Default::default() });
+    for _ in 0..MAX_BAD_LINES * 2 {
+        r.peer.send_raw(b"<html>\n");
+        std::thread::sleep(Duration::from_millis(40));
+    }
+    assert!(r.closed.recv_timeout(Duration::from_millis(100)).is_err(), "드문드문 온 틀린 줄로는 끊지 않는다");
+    assert!(!r.client.is_closed());
+}
+
+#[test]
+fn c6_정상_줄을_섞어_보내도_틀린_줄_세기는_줄지_않는다() {
+    let r = rig();
+    for i in 0..MAX_BAD_LINES {
+        r.peer.send(json!({"jsonrpc":"2.0","method":"rack.event","params":{"n":i}}));
+        r.peer.send_raw(b"<html>\n");
+    }
+    assert_eq!(r.closed.recv_timeout(T).unwrap(), CloseReason::Garbage);
+}
+
+#[test]
+fn q5_알림이_초당_상한을_넘으면_버리고_센다() {
+    let r = rig_with(ClientOptions { notify_per_sec: 20, ..Default::default() });
+    for i in 0..500 {
+        r.peer.send(json!({"jsonrpc":"2.0","method":"rack.event","params":{"n":i}}));
+    }
+    // 뒤따라 보낸 요청의 답이 오면 앞의 알림은 모두 처리된 것이다
+    let a = call_bg(&r.client, "rack.health", T);
+    let req = r.peer.next_request().unwrap();
+    r.peer.send(json!({"jsonrpc":"2.0","id":req["id"],"result":{}}));
+    a.recv_timeout(T).unwrap().unwrap();
+    let got = r.events.lock().unwrap().len() as u64;
+    assert!((20..=40).contains(&got), "받은 알림 {got}건(1초 창이 한 번 넘어갈 수 있다)");
+    assert_eq!(got + r.client.dropped_notifications(), 500);
+}
+
+#[test]
+fn q5_닫힌_뒤에_들어온_호출은_표에_남지_않고_바로_끝난다() {
+    let r = rig();
+    r.peer.close();
+    assert_eq!(r.closed.recv_timeout(T).unwrap(), CloseReason::Eof);
+    for _ in 0..50 {
+        assert_eq!(r.client.call("rack.health", json!({}), Duration::from_secs(30)), Err(CallError::Closed));
+    }
 }

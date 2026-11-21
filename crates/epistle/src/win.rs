@@ -7,7 +7,9 @@
 
 use std::sync::Arc;
 
-use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, ERROR_IO_PENDING, ERROR_MORE_DATA, HANDLE, INVALID_HANDLE_VALUE};
+use std::time::Duration;
+
+use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, ERROR_IO_PENDING, ERROR_MORE_DATA, HANDLE, INVALID_HANDLE_VALUE, WAIT_OBJECT_0, WAIT_TIMEOUT};
 use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, GetFinalPathNameByHandleW, ReadFile, WriteFile, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OVERLAPPED, FILE_GENERIC_READ,
     FILE_NAME_NORMALIZED, FILE_SHARE_DELETE, FILE_SHARE_NONE, FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_WRITE_ATTRIBUTES, FILE_WRITE_DATA,
@@ -20,7 +22,9 @@ use windows_sys::Win32::System::Pipes::{
 use windows_sys::Win32::System::Registry::{
     RegCloseKey, RegEnumKeyExW, RegGetValueW, RegOpenKeyExW, HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, RRF_RT_REG_SZ,
 };
-use windows_sys::Win32::System::Threading::{CreateEventW, OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION};
+use windows_sys::Win32::System::Threading::{
+    CreateEventW, OpenProcess, QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
+};
 use windows_sys::Win32::System::IO::{CancelIoEx, GetOverlappedResult, OVERLAPPED};
 use windows_sys::Win32::UI::Shell::{FOLDERID_ProgramFiles, FOLDERID_ProgramFilesX86, SHGetKnownFolderPath};
 
@@ -33,8 +37,12 @@ use crate::{valid_module_id, ModuleKind};
 const ERROR_PIPE_BUSY: i32 = 231;
 const ERROR_BROKEN_PIPE: i32 = 109;
 const ERROR_OPERATION_ABORTED: i32 = 995;
-/// 등록부에서 열거하는 하위 키 수의 상한
-const MAX_KEYS: u32 = 64;
+/// 등록부에서 받아들이는 모듈 등록 수의 상한(이름 형식이 맞는 것만 센다)
+const MAX_KEYS: usize = 64;
+/// 하위 키를 열거하는 횟수의 상한(형식이 틀린 이름이 많아도 여기서 멈춘다)
+const MAX_ENUM: u32 = 1024;
+/// 파이프의 빈 인스턴스를 기다리는 시간. 한 번만 기다린다 — 인스턴스를 잡아 두는 가짜 서버가 발견을 오래 붙잡지 못하게
+const BUSY_WAIT_MS: u32 = 500;
 
 fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
@@ -74,7 +82,10 @@ impl RegistryView for WinRegistry {
         if unsafe { RegOpenKeyExW(HKEY_LOCAL_MACHINE, wide(MODULES_KEY).as_ptr(), 0, KEY_READ, &mut key) } != 0 {
             return out; // 키가 없음 = 등록된 모듈 없음
         }
-        for i in 0..MAX_KEYS {
+        for i in 0..MAX_ENUM {
+            if out.len() >= MAX_KEYS {
+                break;
+            }
             let mut name = [0u16; 260];
             let mut len = name.len() as u32;
             let r = unsafe {
@@ -214,10 +225,10 @@ pub fn open_unchecked(name: &str) -> std::io::Result<(Arc<Handle>, u32)> {
             break h;
         }
         let err = std::io::Error::last_os_error();
-        // 서버의 빈 인스턴스가 잠시 없으면 최대 3번, 2초씩 기다린다
-        if err.raw_os_error() == Some(ERROR_PIPE_BUSY) && tries < 3 {
+        // 서버의 빈 인스턴스가 잠시 없으면 한 번, 0.5초만 기다린다
+        if err.raw_os_error() == Some(ERROR_PIPE_BUSY) && tries < 1 {
             tries += 1;
-            unsafe { WaitNamedPipeW(w.as_ptr(), 2000) };
+            unsafe { WaitNamedPipeW(w.as_ptr(), BUSY_WAIT_MS) };
             continue;
         }
         return Err(err);
@@ -312,12 +323,34 @@ impl PipeSink {
     }
 }
 impl LineSink for PipeSink {
-    fn write_line(&mut self, line: &[u8]) -> std::io::Result<()> {
+    fn write_line(&mut self, line: &[u8], timeout: Duration) -> std::io::Result<()> {
         let mut ov: OVERLAPPED = unsafe { std::mem::zeroed() };
         ov.hEvent = self.ev.0;
         let mut n = 0u32;
         let ok = unsafe { WriteFile(self.h.0, line.as_ptr(), line.len() as u32, &mut n, &mut ov) } != 0;
-        wait(self.h.0, &mut ov, ok, &mut n)?;
+        if !ok {
+            let e = unsafe { GetLastError() };
+            if e != ERROR_IO_PENDING {
+                return Err(std::io::Error::from_raw_os_error(e as i32));
+            }
+            // 상대가 읽지 않아 버퍼가 차면 쓰기가 끝나지 않는다 — 시한까지만 기다린다
+            let ms = timeout.as_millis().min(u32::MAX as u128 - 1) as u32;
+            let w = unsafe { WaitForSingleObject(self.ev.0, ms) };
+            if w != WAIT_OBJECT_0 {
+                // **이 쓰기만** 취소한다(읽기 스레드의 대기 중인 읽기는 건드리지 않는다)
+                unsafe { CancelIoEx(self.h.0, &ov) };
+                // 취소가 끝날 때까지 기다린 뒤에 돌아간다 — `ov` 는 이 함수의 스택에 있고, 커널이 아직 쓰고 있을 수 있다
+                let done = unsafe { GetOverlappedResult(self.h.0, &ov, &mut n, 1) } != 0;
+                if done && n as usize == line.len() {
+                    return Ok(()); // 취소보다 쓰기가 먼저 끝났다
+                }
+                let kind = if w == WAIT_TIMEOUT { std::io::ErrorKind::TimedOut } else { std::io::ErrorKind::Other };
+                return Err(std::io::Error::new(kind, "쓰기 시한 초과"));
+            }
+            if unsafe { GetOverlappedResult(self.h.0, &ov, &mut n, 0) } == 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+        }
         if n as usize != line.len() {
             return Err(std::io::Error::new(std::io::ErrorKind::WriteZero, "짧은 쓰기"));
         }
@@ -326,7 +359,8 @@ impl LineSink for PipeSink {
 }
 impl Drop for PipeSink {
     fn drop(&mut self) {
-        // 읽기 스레드의 대기 중인 ReadFile 을 취소해 스레드가 끝나고 핸들이 닫히게 한다(서버가 끊김을 본다)
+        // 읽기 스레드의 대기 중인 ReadFile 을 취소해 스레드가 끝나고 핸들이 닫히게 한다(서버가 끊김을 본다).
+        // 핸들의 모든 I/O 를 취소하는 것(NULL)은 여기, 연결을 놓을 때뿐이다
         unsafe { CancelIoEx(self.h.0, std::ptr::null()) };
     }
 }

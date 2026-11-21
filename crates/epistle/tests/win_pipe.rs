@@ -80,6 +80,11 @@ struct Server {
 
 /// 연결 하나를 받아 rack.* 에 답하는 흉내 모듈. `answer_as`: rack.hello·describe 에 적어 보낼 모듈 이름
 fn serve(id: &str, answer_as: &'static str) -> Server {
+    serve_after(id, answer_as, 0)
+}
+
+/// `stall_ms`: 접속을 받은 뒤 이만큼은 읽지 않고 가만히 있는다(읽지 않는 서버 흉내)
+fn serve_after(id: &str, answer_as: &'static str, stall_ms: u64) -> Server {
     let name = pipe_name(id);
     let h = create_pipe(&name, true).expect("첫 인스턴스 만들기");
     let received = Arc::new(AtomicU32::new(0));
@@ -88,6 +93,7 @@ fn serve(id: &str, answer_as: &'static str) -> Server {
     std::thread::spawn(move || {
         let h = h as HANDLE;
         unsafe { ConnectNamedPipe(h, std::ptr::null_mut()) }; // 이미 붙었으면 0(ERROR_PIPE_CONNECTED) — 그대로 진행
+        std::thread::sleep(Duration::from_millis(stall_ms));
         let mut buf = vec![0u8; 1 << 21];
         let write = |v: Value| {
             let line = format!("{v}\n");
@@ -168,6 +174,35 @@ fn 등록된_실행_파일이_연_파이프에_붙어_주고받는다() {
 
     drop(client); // 우리가 놓으면 서버가 끊김을 본다
     s.done.recv_timeout(T).expect("서버 스레드 종료");
+}
+
+#[test]
+fn c2_읽지_않는_서버에_쓰다가_멈추지_않고_읽기_스레드도_살아_있다() {
+    // 서버가 4초 동안 읽지 않는다. 파이프 버퍼(2MB)가 차면 쓰기가 끝나지 않는다
+    let s = serve_after("zzci_h", "zzci_h", 4000);
+    let (tx, closed) = mpsc::channel();
+    let (client, _) = win::connect(
+        &slot("zzci_h", ModuleKind::App, me(), &s.name),
+        Box::new(|_, _| {}),
+        Box::new(move |r| {
+            let _ = tx.send(r);
+        }),
+    )
+    .expect("접속");
+    let blob = "a".repeat(900_000);
+    let t0 = std::time::Instant::now();
+    for i in 0..5 {
+        let r = client.call("fill", json!({ "blob": blob }), Duration::from_millis(300));
+        println!("C2|쓰기 {i}|{:?}|{}ms", r.as_ref().err(), t0.elapsed().as_millis());
+        assert_eq!(r, Err(CallError::Timeout));
+    }
+    // 고치기 전에는 세 번째쯤에서 영영 멈췄다. 호출마다 시한(0.3초) 안팎으로 돌아와야 한다
+    assert!(t0.elapsed() < Duration::from_millis(3000), "쓰기가 시한을 지키지 않음: {:?}", t0.elapsed());
+    // 쓰기를 취소한 것이 읽기 스레드의 대기 중인 읽기까지 취소하지 않았는지: 서버가 깨어난 뒤 답을 받는다
+    assert!(closed.try_recv().is_err(), "쓰기 취소가 연결을 끊었다");
+    std::thread::sleep(Duration::from_millis(4200).saturating_sub(t0.elapsed()));
+    assert_eq!(client.call("rack.health", json!({}), T).expect("서버가 깨어난 뒤의 호출")["state"], "ok");
+    assert!(!client.is_closed());
 }
 
 #[test]
